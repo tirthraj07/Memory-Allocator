@@ -279,12 +279,13 @@ Number of Free Chunks: 1
 
 ## How It Works Internally
 
+![internal-structure](public/allocator_diagram.png)
+
 ### `brk` and `sbrk` System Calls
 The allocator uses the `sbrk` system call, which adjusts the program's data space by changing the program break location. By controlling `sbrk`, the allocator directly manages memory allocation outside of the standard C++ heap allocation (e.g., `new` or `malloc`), giving granular control over the memory lifecycle.
 
-### Chunk Pointer Pool and BST Organization
-The allocator creates a pool of chunk pointers managed by a binary search tree (BST). Each chunk has metadata, stored in `Chunk_Metadata`, that tracks the chunk's size, allocation status, and neighboring chunks. 
-- **Size-based Search**: The BST searches for chunks that match or exceed the requested size, which helps implement the best-fit allocation strategy efficiently.
+### Chunk Allocation Pool and BST Organization
+The allocator creates a pool of chunk pointers of allocated chunks managed by a binary search tree (BST). Each chunk has metadata, stored in `Chunk_Metadata`, that tracks the chunk's size, allocation status, and neighboring chunks. 
 - **Pointer-based Search**: When deallocating, the BST uses the pointer to locate chunks quickly, allowing efficient deallocation.
 
 ### Memory Allocation and Deallocation Process
@@ -294,5 +295,8 @@ The allocator creates a pool of chunk pointers managed by a binary search tree (
 
 ### The `allocate_new` Function
 The allocator uses the `allocate_new` function to allocate objects with constructor calls. It combines templates and the `placement new` syntax to directly construct objects in allocated memory without extra allocation overhead. This function exemplifies low-level memory management while providing flexibility to allocate custom object types efficiently.
+
+### The `free_ptr` Function   
+The allocator uses the `free_ptr` function to destroy the object pointed by the pointer. It first, calls the destructor and then makes the memory as free
 
 ---
