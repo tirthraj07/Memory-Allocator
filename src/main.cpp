@@ -1,11 +1,37 @@
 #include <iostream>
 #include "allocator.h"
 
+class MyClass {
+public:
+	MyClass(std::string param) {
+		std::cout << "My Class Constructor called" << std::endl;
+		std::cout << "Param passed : " << param << std::endl;
+	}
+
+	~MyClass() {
+		std::cout << "My Class Destructor called" << std::endl;
+	}
+
+	void foo() {
+		std::cout << "My Class function called" << std::endl;
+	}
+};
+
 
 int main(){
-	bool DEBUG_MODE = false;
+	/*
+	// Turn on DEBUG MODE for internal heap logs
+	// Default DEBUG_MODE = false
+	// Note: heap_dump() and print_allocated_chunks() only works in debug mode.
+	// To enable debug mode, use the following syntax:
+
+	bool DEBUG_MODE = true;
 	Allocator& alloc = Allocator::getInstance(DEBUG_MODE);
-	
+	*/
+
+	Allocator& alloc = Allocator::getInstance();
+
+
 	// only works in debug_mode
 	alloc.heap_dump();
 	alloc.print_allocated_chunks();
@@ -91,4 +117,17 @@ int main(){
 	alloc.heap_dump();
 	alloc.print_allocated_chunks();
 	
+
+	// now let us create the object of class using the allocate_new function which behaves like new operator in C++
+	MyClass* myclass_ptr = alloc.allocate_new<MyClass>("Hello");
+
+	alloc.heap_dump();
+	alloc.print_allocated_chunks();
+	
+	myclass_ptr->foo();
+	alloc.free_ptr<MyClass>(myclass_ptr);
+
+
+	alloc.heap_dump();
+	alloc.print_allocated_chunks();
 }

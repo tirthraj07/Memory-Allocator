@@ -525,4 +525,3 @@ void Allocator::log_info(const std::string& str)
     out.str(""); // Clear out the contents after logging
     out.clear();
 }
-
