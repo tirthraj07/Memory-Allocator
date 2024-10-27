@@ -2,14 +2,34 @@
 #include <iostream>
 #include <cassert>
 #include <cstddef>
+#include <string>
 #include <unistd.h>
 #include "chunk_metadata.h"
+#include "bst_node.h"
+#include <iomanip>
 
-Allocator::Allocator()
-{
-    std::cout << "INITILIZATING HEAP.. " << std::endl;
-    std::cout << "INITIAL HEAP CAPACITY " << INITIAL_HEAP_CAPACITY << std::endl;
-    std::cout << "Chunk Metadata Size : " << sizeof(Chunk_Metadata) << std::endl;
+Allocator::Allocator(bool debug_mode):DEBUG_MODE(debug_mode)
+{       
+    out << "INITILIZATING NODE POOL.." << std::endl;
+    log_info(out.str());
+
+    this->node_index = 0;
+    this->node_pool = static_cast<BST_Node*>(sbrk(MAX_NODES * sizeof(BST_Node)));
+    node_used = static_cast<bool*>(sbrk(MAX_NODES * sizeof(bool)));
+
+    if (node_pool == (void*)-1 || node_used == (void*)-1) {
+        std::cerr << "Failed to initialize node pool" << std::endl;
+        exit(1);
+    }
+
+    std::fill(node_used, node_used + MAX_NODES, false);
+
+    out << "INITILIZATING HEAP.. " <<std::endl;
+    log_info(out.str());
+    out << "INITIAL HEAP CAPACITY " << INITIAL_HEAP_CAPACITY << std::endl;
+    log_info(out.str());
+    out << "Chunk Metadata Size : " << sizeof(Chunk_Metadata) << std::endl;
+    log_info(out.str());
     heap_start = sbrk(INITIAL_HEAP_CAPACITY);
     if (heap_start == (void*)-1) {
         std::cerr << "Failed to allocate initial heap space" << std::endl;
@@ -19,17 +39,31 @@ Allocator::Allocator()
     HEAP_CAPACITY = INITIAL_HEAP_CAPACITY;
     used_heap_size = 0;
 
-    std::cout << "Heap initialized at heap_start : " << heap_start << " with capacity of " << HEAP_CAPACITY << std::endl;
+    out<<"Heap initialized at heap_start : " << heap_start << " with capacity of " << HEAP_CAPACITY << std::endl;
+    log_info(out.str());
+}
 
+Allocator& Allocator::getInstance(bool debug_mode)
+{    
+    static Allocator instance(debug_mode); // Static instance created only once
+    return instance;
 }
 
 void* Allocator::allocate(std::size_t size)
 {
+    if (DEBUG_MODE) std::cout << "\n\n\n" << std::endl;
+
+    out << "Received Allocation Request for " << size << std::endl;
+    log_info(out.str());
+
     if (size <= 0) {
         return nullptr;
     }
     
     if (used_heap_size + size + sizeof(Chunk_Metadata) >= HEAP_CAPACITY) {
+        out << "Heap Size not sufficient: used_heap_size + size + sizeof(Chunk_Metadata) >= HEAP_CAPACITY " << used_heap_size + size + sizeof(Chunk_Metadata) << std::endl;
+        log_info(out.str());
+
         if (expand_heap(size + sizeof(Chunk_Metadata)) != 0) {
             std::cerr << "Error: HEAP OVERFLOW" << std::endl;
             exit(1);
@@ -38,6 +72,9 @@ void* Allocator::allocate(std::size_t size)
 
     // first chunk entry in heap
     if (used_heap_size == 0) {
+        out << "Creating first chunk " << std::endl;
+        log_info(out.str());
+
         Chunk_Metadata* metadata = reinterpret_cast<Chunk_Metadata*>(heap_start);
         metadata->chunk_size = size;
         metadata->next = nullptr;
@@ -48,9 +85,13 @@ void* Allocator::allocate(std::size_t size)
         used_heap_size = sizeof(Chunk_Metadata) + size;
 
         // Return the pointer to the start of the chunk's data (after metadata)
-        return reinterpret_cast<void*>(
+        void* chunk_ptr = reinterpret_cast<void*>(
             reinterpret_cast<char*>(heap_start) + sizeof(Chunk_Metadata)
-            );
+        );
+
+        allocated_chunks_root = insert_in_bst(allocated_chunks_root, chunk_ptr, size);
+
+        return chunk_ptr;
     }
 
     // now if the used_heap_size is not 0
@@ -86,22 +127,39 @@ void* Allocator::allocate(std::size_t size)
 
     // If a suitable free chunk was found
     if (best_fit) {
+        out << "Best fit Found" << std::endl
+            << " best_fit->chunk_size=" << best_fit->chunk_size << std::endl
+            << " requested chunk_size=" << size << std::endl;
+        log_info(out.str());
+
         // If the chunk size exactly matches the requested size
         if (best_fit->chunk_size == size) {
+            out << "Perfect Fit Found" << std::endl;
+            log_info(out.str());
             best_fit->is_free = false; // Mark as allocated
-            return best_fit->currentChunk();
+            void* chunk_ptr = best_fit->currentChunk();
+            allocated_chunks_root = insert_in_bst(allocated_chunks_root, chunk_ptr, size);
+            return chunk_ptr;
         }
 
         // If the chunk size is larger than the requested size, split the chunk
         if (best_fit->chunk_size > size) {
             int remaining_size = best_fit->chunk_size - size - sizeof(Chunk_Metadata);
 
+            out << "Imperfect Fit Found" << std::endl
+                << " remaining_size=" << remaining_size << std::endl
+                << " sizeof(Chunk_Metadata)=" << sizeof(Chunk_Metadata) << std::endl;
+            log_info(out.str());
+
             // Ensure the remaining chunk is large enough to hold metadata
-            if (remaining_size > (int)(sizeof(Chunk_Metadata))) {
+            if (remaining_size > 0) {
                 // Create a new chunk immediately after the best fit chunk
+                out << "Request for new chunk creation" << std::endl;
+                log_info(out.str());
+
                 Chunk_Metadata* new_chunk = reinterpret_cast<Chunk_Metadata*>(
                     reinterpret_cast<char*>(best_fit) + sizeof(Chunk_Metadata) + size
-                    );
+                );
 
                 new_chunk->chunk_size = remaining_size;
                 new_chunk->is_free = true;
@@ -115,11 +173,28 @@ void* Allocator::allocate(std::size_t size)
                 }
 
                 best_fit->chunk_size = size;
+
+                out << "New chunk created at " << new_chunk << std::endl
+                    << " is_free=" << new_chunk->is_free << std::endl
+                    << " chunk_size=" << new_chunk->chunk_size << std::endl
+                    << " new_chunk->next=" << new_chunk->next << std::endl
+                    << " new_chunk->prev=" << new_chunk->prev << std::endl;
+                log_info(out.str());                
             }
         }
 
-        best_fit->is_free = false; // Mark as allocated
-        return best_fit->currentChunk(); // Return the pointer to the data area
+        best_fit->is_free = false; 
+        void* chunk_ptr = best_fit->currentChunk();
+        allocated_chunks_root = insert_in_bst(allocated_chunks_root, chunk_ptr, size);
+
+        out << "Best Fit chunk at " << best_fit << std::endl
+            << " best_fit->is_free=" << best_fit->is_free << std::endl
+            << " best_fit->chunk_size=" << best_fit->chunk_size << std::endl
+            << " best_fit->next=" << best_fit->next << std::endl
+            << " best_fit->prev=" << best_fit->prev << std::endl;
+        log_info(out.str());
+
+        return chunk_ptr; 
     }
 
     // If no suitable free chunk was found, append to the end
@@ -134,12 +209,17 @@ void* Allocator::allocate(std::size_t size)
     last_chunk->next = new_chunk;
    
     used_heap_size += sizeof(Chunk_Metadata) + size;
+    void* chunk_ptr = new_chunk->currentChunk();
+    allocated_chunks_root = insert_in_bst(allocated_chunks_root, chunk_ptr, size);
 
-    return new_chunk->currentChunk();
+    return chunk_ptr;
 }
 
 void Allocator::deallocate(void* ptr)
 {
+    out << "Received request for deallocation of pointer " << ptr << std::endl;
+    log_info(out.str());
+
     // to implement deallocate function
     // first we need to check if the ptr provided is valid or not
     // there are two cases for invalid pointers
@@ -169,15 +249,29 @@ void Allocator::deallocate(void* ptr)
         exit(1);
     }
 
+    out << "Verification Done:  " << ptr << " is valid" << std::endl;
+    log_info(out.str());
+
     Chunk_Metadata* current = reinterpret_cast<Chunk_Metadata*>(heap_start);
     bool found = false;
 
-    while (current != nullptr) {
+    /*while (current != nullptr) {
         if (current->currentChunk() == ptr) {
             found = true;
             break;
         }
         current = current->next;
+    }*/
+
+    BST_Node* bst_node = search_ptr_in_bst(allocated_chunks_root, ptr);
+    if (bst_node != nullptr) {
+        found = true;
+        current = reinterpret_cast<Chunk_Metadata*>(reinterpret_cast<char*>(bst_node->chunk_ptr) - sizeof(Chunk_Metadata));
+        out << "Pointer found in allocation tree" << std::endl
+            << " ptr=" << ptr << std::endl
+            << " chunk_ptr=" << bst_node->chunk_ptr << std::endl
+            << " bst_chunk_node=" << current << std::endl;
+        log_info(out.str());
     }
 
     if (!found) {
@@ -186,6 +280,7 @@ void Allocator::deallocate(void* ptr)
     }
 
     current->is_free = true;
+    allocated_chunks_root = remove_node_in_bst(allocated_chunks_root, ptr);
 
     // Coalescing adjacent free chunks
     if (current->next != nullptr && current->next->is_free) {
@@ -210,43 +305,195 @@ void Allocator::deallocate(void* ptr)
 
 void Allocator::heap_dump()
 {
-    std::cout << "Heap Dump:\n";
-    std::cout << "Total Heap Capacity: " << HEAP_CAPACITY << " bytes\n";
-    std::cout << "Used Heap Size: " << used_heap_size << " bytes\n";
+    if(DEBUG_MODE){
+        Chunk_Metadata* current = reinterpret_cast<Chunk_Metadata*>(heap_start);
+        std::size_t total_allocated = 0;
+        std::size_t total_free = 0;
+        std::size_t allocated_chunks = 0;
+        std::size_t free_chunks = 0;
 
-    Chunk_Metadata* current = reinterpret_cast<Chunk_Metadata*>(heap_start);
-    std::size_t total_allocated = 0;
-    std::size_t total_free = 0;
-    std::size_t allocated_chunks = 0;
-    std::size_t free_chunks = 0;
+        std::cout << "----------------------------------------\n"
+            << "Heap Dump:\n"
+            << "Total Heap Capacity: " << HEAP_CAPACITY << " bytes\n"
+            << "Used Heap Size: " << used_heap_size << " bytes\n"
+            << "Chunks:\n";
 
-    std::cout << "Chunks:\n";
-    while (current != nullptr) {
-        std::cout << "Chunk at: " << current
-            << ", Size: " << current->chunk_size
-            << " bytes, "
-            << (current->is_free ? "Free" : "Allocated")
-            << ", Next: " << current->next
-            << ", Prev: " << current->prev
-            << "\n";
+        while (current != nullptr) {
+            std::cout << "Chunk at: " << current
+                << ", Size: " << current->chunk_size
+                << " bytes, "
+                << (current->is_free ? "Free" : "Allocated")
+                << ", Next: " << current->next
+                << ", Prev: " << current->prev
+                << "\n";
+            
+            if (current->is_free) {
+                total_free += current->chunk_size;
+                free_chunks++;
+            }
+            else {
+                total_allocated += current->chunk_size;
+                allocated_chunks++;
+            }
 
-        if (current->is_free) {
-            total_free += current->chunk_size;
-            free_chunks++;
+            current = current->next; // Move to the next chunk
         }
-        else {
-            total_allocated += current->chunk_size;
-            allocated_chunks++;
-        }
 
-        current = current->next; // Move to the next chunk
+        std::cout << "Summary:\n"
+            << "Total Allocated Memory: " << total_allocated << " bytes\n"
+            << "Total Free Memory: " << total_free << " bytes\n"
+            << "Number of Allocated Chunks: " << allocated_chunks << "\n"
+            << "Number of Free Chunks: " << free_chunks << "\n"
+            << "----------------------------------------" << std::endl;
+    }
+}
+
+void Allocator::print_allocated_chunks()
+{
+    if(DEBUG_MODE){
+        std::cout << "-- PRINTING ALLOCATED CHUNKS --" << std::endl;
+        print_bst(allocated_chunks_root);
+    }
+}
+
+void Allocator::print_bst(BST_Node* root, int space, int height)
+{
+    // Base case
+    if (root == nullptr) {
+        return;
     }
 
-    std::cout << "Summary:\n";
-    std::cout << "Total Allocated Memory: " << total_allocated << " bytes\n";
-    std::cout << "Total Free Memory: " << total_free << " bytes\n";
-    std::cout << "Number of Allocated Chunks: " << allocated_chunks << "\n";
-    std::cout << "Number of Free Chunks: " << free_chunks << "\n";
+    // Increase distance between levels
+    space += height;
+
+    // Process right child first
+    print_bst(root->right, space);
+
+    // Print current node after space
+    std::cout << std::endl;
+    std::cout << std::setw(space) << reinterpret_cast<void*>(reinterpret_cast<char*>(root->chunk_ptr) - sizeof(Chunk_Metadata)) << " : " << root->chunk_size; // You can change this to root->size or any other property
+    std::cout << std::endl;
+
+    // Process left child
+    print_bst(root->left, space);
+}
+
+BST_Node* Allocator::allocate_node(std::size_t size, void* chunk)
+{
+    out << "Received request for node allocation: size=" << size << " chunk=" << chunk << std::endl;
+    log_info(out.str());
+    for (int i = 0; i < MAX_NODES; ++i) {
+        out << "Node: i=" << i << std::endl;
+        log_info(out.str());
+
+        out << " node_pool=" << &node_pool[i] << std::endl;
+        log_info(out.str());
+
+        out << " node_used=" << node_used[i] << std::endl;
+        log_info(out.str());
+
+        if (!node_used[i]) {
+            out << "Found free node" << std::endl;
+            log_info(out.str());
+
+            node_used[i] = true;
+            node_pool[i] = BST_Node(chunk, size);
+            return &node_pool[i];
+        }
+    }
+    return nullptr;
+}
+
+void Allocator::deallocate_node(BST_Node* node)
+{
+    if (node) {
+        std::size_t index = node - node_pool; // Calculate the node's index
+        node_used[index] = false;             // Mark node as free
+    }
+}
+
+BST_Node* Allocator::insert_in_bst(BST_Node* root, void* chunk_ptr, std::size_t chunk_size)
+{
+    out << "Received Request for inserting node in BST: root=" << root << " chunk_ptr=" << chunk_ptr << " chunk_size=" << chunk_size << std::endl;
+    log_info(out.str());
+
+    if (root == nullptr) {
+        return allocate_node(chunk_size, chunk_ptr);
+    }
+    if (chunk_ptr < root->chunk_ptr) {
+        root->left = insert_in_bst(root->left, chunk_ptr, chunk_size);
+    }
+    else {
+        root->right = insert_in_bst(root->right, chunk_ptr, chunk_size);
+    }
+    return root;
+}
+
+BST_Node* Allocator::search_ptr_in_bst(BST_Node* root, void* chunk_ptr)
+{
+    if (root == nullptr || root->chunk_ptr == chunk_ptr) {
+        return root; 
+    }
+
+    // Compare the given pointer with the current node's address
+    if (chunk_ptr < root->chunk_ptr) {
+        // Search in the left subtree
+        return search_ptr_in_bst(root->left, chunk_ptr);
+    }
+    else {
+        // Search in the right subtree
+        return search_ptr_in_bst(root->right, chunk_ptr);
+    }
+}
+
+BST_Node* Allocator::remove_node_in_bst(BST_Node* root, void* chunk_ptr)
+{
+    // Base case: if the tree is empty
+    if (root == nullptr) {
+        return root; // Return null if the node is not found
+    }
+
+    if (chunk_ptr < root->chunk_ptr) {
+        root->left = remove_node_in_bst(root->left, chunk_ptr);
+    }
+    else if (chunk_ptr > root->chunk_ptr) {
+        root->right = remove_node_in_bst(root->right, chunk_ptr);
+    }
+    else {
+        // Node with only one child or no child
+        if (root->left == nullptr) {
+            // Node has no left child
+            BST_Node* temp = root->right; 
+            deallocate_node(root);
+            return temp;
+        }
+        else if (root->right == nullptr) {
+            // Node has no right child
+            BST_Node* temp = root->left;
+            deallocate_node(root);
+            return temp;
+        }
+
+        // Node with two children: Get the inorder successor
+        BST_Node* temp = find_min_node(root->right);
+
+        root->chunk_ptr = temp->chunk_ptr;
+        root->chunk_size = temp->chunk_size;
+
+        // Delete the inorder successor
+        root->right = remove_node_in_bst(root->right, temp->chunk_ptr);
+    }
+
+    return root; 
+}
+
+BST_Node* Allocator::find_min_node(BST_Node* node)
+{
+    BST_Node* current = node;
+    while (current && current->left != nullptr) {
+        current = current->left;
+    }
+    return current;
 }
 
 int Allocator::expand_heap(std::size_t size)
@@ -269,3 +516,13 @@ int Allocator::expand_heap(std::size_t size)
 
     return 0; 
 }
+
+void Allocator::log_info(const std::string& str)
+{
+    if(DEBUG_MODE){
+        std::cout << "[INFO]    " << str << std::endl;
+    }
+    out.str(""); // Clear out the contents after logging
+    out.clear();
+}
+

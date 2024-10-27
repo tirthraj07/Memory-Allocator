@@ -1,32 +1,94 @@
 #include <iostream>
 #include "allocator.h"
 
+
 int main(){
-    std::cout<<"Starting main.cpp.. "<<std::endl;
-    Allocator alloc;
+	bool DEBUG_MODE = false;
+	Allocator& alloc = Allocator::getInstance(DEBUG_MODE);
+	
+	// only works in debug_mode
+	alloc.heap_dump();
+	alloc.print_allocated_chunks();
+	
 
-    char* ptr1 = (char*)alloc.allocate(80);
-    char* ptr2 = (char*)alloc.allocate(5);
+	int* int_arr = (int*)alloc.allocate(sizeof(int) * 10);
+	for (int i = 0; i < 10; i++) {
+		int_arr[i] = i;
+	}
+
+	for (int i = 0; i < 10; i++) {
+		std::cout << int_arr[i] << " ";
+	}
+	std::cout << std::endl;
+
+	
+	char* char_arr = (char*)alloc.allocate(sizeof(char) * 26);
+	
+	for (int i = 0; i < 26; i++) {
+		char_arr[i] = (char)(65 + i);
+	}
+
+	for (int i = 0; i < 26; i++) {
+		std::cout << char_arr[i] << " ";
+	}
+	std::cout << std::endl;
+
+	// expected to have 2 chunks -> int_arr and char_arr
+	// int_arr chunk = 10*sizeof(int) + 32 (sizeof(Chunk_Metadata)) = 10*4 + 32 = 40 + 32 = 72 bytes
+	// char_arr chunk = 26*sizeof(char) + 32 (sizeof(Chunk_Metadata)) = 26 + 32 = 58 bytes
+
+	alloc.heap_dump();
+	alloc.print_allocated_chunks();
+
+	
+	// let us free int_arr. It should free -> 10 * sizeof(int) = 10*4 + 32 = 40+32 = 72 bytes
+	alloc.deallocate(int_arr);
+
+	// now if we look at heap dump, we will see that chunk 1 is free and allocated_chunk tree should only have one chunk inside of it
+	alloc.heap_dump();
+	alloc.print_allocated_chunks();
+
+	
+	// now let us create a new chunk of char of size 3
+	// it will take 3*sizeof(char) + 32 (sizeof(Chunk_Metadata)) =  35 bytes
+	// it will be placed in 72 bytes chunk which we deallocted earlier
+	// remaining 72-35  = 37 bytes can be used to create a new chunk of size 5 bytes 
+	// as 5 bytes + 32 bytes (sizeof(Chunk_Metadata)) = 37 bytes
 
 
+	char* chunk_1 = (char*) alloc.allocate(sizeof(char) * 3);
+	for (int i = 0; i < 3; i++) {
+		chunk_1[i] = (char)(65 + i);
+	}
 
-    std::cout << "\nAdding ptr1 and ptr2" << std::endl;
-    alloc.heap_dump();
+	// expected to have 3 chunks : chunk_1 (3 bytes) + free_chunk (5 bytes) + char_arr chunk (26 bytes)
+	alloc.heap_dump();
+	alloc.print_allocated_chunks();
+	
+	char* chunk_2 = (char*) alloc.allocate(sizeof(char) * 5);
+	for (int i = 0; i < 5; i++) {
+		chunk_2[i] = (char)(65 + i);
+	}
 
-    alloc.deallocate(ptr1);
+	for (int i = 0; i < 5; i++) {
+		std::cout << chunk_2[i] << " ";
+	}
+	std::cout << std::endl;
 
-    std::cout << "\nAfter deleting ptr1" << std::endl;
-    alloc.heap_dump();
+	// expected to have 3 chunks : chunk_1 (3 bytes) + chunk_2 (5 bytes) + char_arr chunk (26 bytes)
 
+	alloc.heap_dump();
+	alloc.print_allocated_chunks();
+	
+	// now let us deallocate all chunks
+	// expected that all chunks coalesce
+	// coalesced chunk = 3 (chunk_1) + 5 (chunk_2) + 32 (chunk_2 Metadata) + 26 (char_arr) + 32 (char_arr Metadata) = 98 byes
 
-    char* ptr3 = (char*)alloc.allocate(5);
-    std::cout << "\nAfter adding ptr3" << std::endl;
-    alloc.heap_dump();
+	alloc.deallocate(chunk_1);
+	alloc.deallocate(chunk_2);
+	alloc.deallocate(char_arr);
 
-
-    alloc.deallocate(ptr2);
-    std::cout << "\nAfter deleting ptr2" << std::endl;
-    alloc.heap_dump();
-
-    
+	alloc.heap_dump();
+	alloc.print_allocated_chunks();
+	
 }

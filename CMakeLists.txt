@@ -10,4 +10,4 @@ include_directories(includes)
 add_executable(MemoryAllocator
     src/main.cpp
     "lib/allocator.cpp"
-    "lib/chunk_metadata.cpp"  )   
+    "lib/chunk_metadata.cpp"  "lib/bst_node.cpp")   
