@@ -1,4 +1,4 @@
-﻿# Custom Memory Allocator
+﻿# Dynamic Heap Memory Allocator
 ### By Tirthraj Mahajan
 
 This project is a custom memory allocator in C++ from scratch designed to manage memory with fine control and efficiency. 
