@@ -1,19 +1,21 @@
-#include <iostream>
+ #include <iostream>
 #include "allocator.h"
+
+#define LBR '\n'
 
 class MyClass {
 public:
 	MyClass(std::string param) {
-		std::cout << "My Class Constructor called" << std::endl;
-		std::cout << "Param passed : " << param << std::endl;
+		std::cout << "My Class Constructor called" << LBR;
+		std::cout << "Param passed : " << param << LBR;
 	}
 
 	~MyClass() {
-		std::cout << "My Class Destructor called" << std::endl;
+		std::cout << "My Class Destructor called" << LBR;
 	}
 
 	void foo() {
-		std::cout << "My Class function called" << std::endl;
+		std::cout << "My Class function called" << LBR;
 	}
 };
 
@@ -45,7 +47,7 @@ int main(){
 	for (int i = 0; i < 10; i++) {
 		std::cout << int_arr[i] << " ";
 	}
-	std::cout << std::endl;
+	std::cout << LBR;
 
 	
 	char* char_arr = (char*)alloc.allocate(sizeof(char) * 26);
@@ -57,7 +59,7 @@ int main(){
 	for (int i = 0; i < 26; i++) {
 		std::cout << char_arr[i] << " ";
 	}
-	std::cout << std::endl;
+	std::cout << LBR;
 
 	// expected to have 2 chunks -> int_arr and char_arr
 	// int_arr chunk = 10*sizeof(int) + 32 (sizeof(Chunk_Metadata)) = 10*4 + 32 = 40 + 32 = 72 bytes
@@ -99,7 +101,7 @@ int main(){
 	for (int i = 0; i < 5; i++) {
 		std::cout << chunk_2[i] << " ";
 	}
-	std::cout << std::endl;
+	std::cout << LBR;
 
 	// expected to have 3 chunks : chunk_1 (3 bytes) + chunk_2 (5 bytes) + char_arr chunk (26 bytes)
 
