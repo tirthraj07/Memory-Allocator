@@ -9,7 +9,7 @@
 #include <sstream>
 #include <string>
 #include <iostream>
-
+#include <garbage_collector.h>
 /**
  * @class Allocator
  * @brief A custom memory allocator implementing a best-fit memory allocation strategy with a singleton pattern.
@@ -34,6 +34,7 @@ public:
 	 * @param size The size of memory to allocate.
 	 * @return Pointer to the allocated memory, or nullptr if allocation fails.
 	 */
+
 	void* allocate(std::size_t size);
 
 	/**
@@ -128,6 +129,8 @@ private:
 	std::size_t used_heap_size;										///< The total amount of memory used in the heap.
 	std::size_t HEAP_CAPACITY;										///< The current capacity of the heap.
 
+	Garbage_Collector& gc;
+
 	static const std::size_t MAX_NODES = 1024;						///< Maximum number of chunk pointers in the node pool.
 	BST_Node* node_pool;											///< Pool of BST nodes used to manage allocated chunks.
 	bool* node_used;												///< Boolean array indicating the usage of nodes in node_pool.
@@ -146,6 +149,7 @@ private:
 	Allocator(const Allocator&) = delete;
 	Allocator& operator=(const Allocator&) = delete;
 
+	void* allocate(std::size_t size, bool gc_collect_flag);
 
 	/**
 	 * @brief Allocates a BST node for a memory chunk.

@@ -7,10 +7,11 @@
 #include "chunk_metadata.h"
 #include "bst_node.h"
 #include <iomanip>
+#include <garbage_collector.h>
 
 #define LBR '\n'
 
-Allocator::Allocator(bool debug_mode):DEBUG_MODE(debug_mode)
+Allocator::Allocator(bool debug_mode):gc(Garbage_Collector::getInstance(debug_mode)), DEBUG_MODE(debug_mode)
 {       
     out << "INITILIZATING NODE POOL.." << LBR;
     log_info(out.str());
@@ -25,6 +26,7 @@ Allocator::Allocator(bool debug_mode):DEBUG_MODE(debug_mode)
     }
 
     std::fill(node_used, node_used + MAX_NODES, false);
+    
 
     out << "INITILIZATING HEAP.. " <<LBR;
     log_info(out.str());
@@ -51,7 +53,8 @@ Allocator& Allocator::getInstance(bool debug_mode)
     return instance;
 }
 
-void* Allocator::allocate(std::size_t size)
+// Private API called by Public allocate() API to prevent users from disabling gc_collect_flag
+void* Allocator::allocate(std::size_t size, bool gc_collect_flag)
 {
     if (DEBUG_MODE) std::cout << "\n\n\n" << LBR;
 
@@ -66,7 +69,17 @@ void* Allocator::allocate(std::size_t size)
         out << "Heap Size not sufficient: used_heap_size + size + sizeof(Chunk_Metadata) >= HEAP_CAPACITY " << used_heap_size + size + sizeof(Chunk_Metadata) << LBR;
         log_info(out.str());
 
+        // If there is no free space, then call the collect method in garbage collector
+        if (gc_collect_flag){
+            out << "Calling Garbage Collector to collect free space" << LBR;
+            log_info(out.str());
+            gc.gc_collect();
+            return allocate(size, false);
+        }
+
+        // If there is still no space after gc collect then expand memory
         if (expand_heap(size + sizeof(Chunk_Metadata)) != 0) {
+            // If OS does not provide more memory -> Throw error
             std::cerr << "Error: HEAP OVERFLOW" << LBR;
             exit(1);
         }
@@ -215,6 +228,11 @@ void* Allocator::allocate(std::size_t size)
     allocated_chunks_root = insert_in_bst(allocated_chunks_root, chunk_ptr, size);
 
     return chunk_ptr;
+}
+
+void* Allocator::allocate(std::size_t size)
+{
+    return allocate(size, true);
 }
 
 void Allocator::deallocate(void* ptr)
@@ -384,7 +402,7 @@ BST_Node* Allocator::allocate_node(std::size_t size, void* chunk)
 {
     out << "Received request for node allocation: size=" << size << " chunk=" << chunk << LBR;
     log_info(out.str());
-    for (int i = 0; i < MAX_NODES; ++i) {
+    for (std::size_t i = 0; i < MAX_NODES; ++i) {
         out << "Node: i=" << i << LBR;
         log_info(out.str());
 
