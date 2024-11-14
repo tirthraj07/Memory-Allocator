@@ -1,5 +1,6 @@
 #ifndef ALLOCATOR_H
 #define ALLOCATOR_H
+#pragma once
 
 #include <cstddef>
 #include <unistd.h>

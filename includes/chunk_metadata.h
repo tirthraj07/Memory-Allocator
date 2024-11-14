@@ -1,5 +1,6 @@
 #ifndef CHUNK_METADATA_H
 #define CHUNK_METADATA_H
+#pragma once
 
 #include <cstddef>
 

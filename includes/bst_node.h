@@ -1,5 +1,6 @@
 #ifndef BST_NODE_H
 #define BST_NODE_H
+#pragma once
 
 #include <cstddef>
 
