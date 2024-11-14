@@ -9,6 +9,10 @@ Garbage_Collector::Garbage_Collector(bool debug_mode) {
     this->DEBUG_MODE = debug_mode;
     out << "Garbage Collector Instantiated" << LBR;
     log_info();
+    void* stack_pointer;
+    asm("movq %%rsp, %0" : "=r"(stack_pointer)); // Get the stack pointer
+    out << "Current stack pointer (rsp): " << stack_pointer << LBR;
+    log_info();
 }
 
 void Garbage_Collector::log_info(){
