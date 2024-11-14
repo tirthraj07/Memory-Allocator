@@ -2,17 +2,23 @@
 #define GARBAGE_COLLECTOR_H
 #pragma once
 
+#include <sstream>
+#include <string>
+#include <iostream>
+
 class Garbage_Collector {
 private:
-	Garbage_Collector gc;
+	std::ostringstream out;											///< Output stream for logging purposes.
+	Garbage_Collector(bool debug_mode);
+	void log_info();
+	bool DEBUG_MODE;
 
-	Garbage_Collector();
-	void log_info(const std::string& str);
 
 public:
 	
-	static Garbage_Collector getInstance();
+	static Garbage_Collector& getInstance(bool debug_mode = false);
 	
+	void gc_collect();
 
 
 };
