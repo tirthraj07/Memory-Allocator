@@ -30,8 +30,8 @@ int main(){
 	bool DEBUG_MODE = true;
 	Allocator& alloc = Allocator::getInstance(DEBUG_MODE);
 	*/
-
-	Allocator& alloc = Allocator::getInstance();
+	bool DEBUG_MODE = true;
+	Allocator& alloc = Allocator::getInstance(DEBUG_MODE);
 
 
 	// only works in debug_mode
