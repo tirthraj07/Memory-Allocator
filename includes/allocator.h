@@ -35,7 +35,7 @@ public:
 	 * @return Pointer to the allocated memory, or nullptr if allocation fails.
 	 */
 
-	void* allocate(std::size_t size);
+	void* allocate(std::size_t size, void** root=NULL);
 
 	/**
 	 * @brief Deallocates memory pointed to by a specified pointer.
@@ -123,13 +123,17 @@ public:
 		}
 	}
 
+	Chunk_Metadata* get_chunk(void* ptr);
+
+	Garbage_Collector& getGC();
+
 private:
 	static const std::size_t INITIAL_HEAP_CAPACITY = 1024 * 1024; 	///< Initial heap capacity (1 MB).
 	void* heap_start;												///< Starting address of the heap.
 	std::size_t used_heap_size;										///< The total amount of memory used in the heap.
 	std::size_t HEAP_CAPACITY;										///< The current capacity of the heap.
 
-	Garbage_Collector& gc;
+	Garbage_Collector* gc;
 
 	static const std::size_t MAX_NODES = 1024;						///< Maximum number of chunk pointers in the node pool.
 	BST_Node* node_pool;											///< Pool of BST nodes used to manage allocated chunks.
@@ -219,7 +223,7 @@ private:
 	 * @brief Logs informational messages if debugging is enabled.
 	 * @param str The message to log.
 	 */
-	void log_info(const std::string& str);
+	void log_info();
 
 };
 
