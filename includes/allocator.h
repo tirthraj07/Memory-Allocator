@@ -243,7 +243,7 @@ private:
 	Chunk_Metadata* get_chunk(void* ptr);
 	void gc_unmark_chunks();
 	void find_chunks_within_chunk(Chunk_Metadata* top, void* root_chunk_list[], int& root_chunk_list_size);
-
+	void gc_sweep();
 };
 
 #endif 

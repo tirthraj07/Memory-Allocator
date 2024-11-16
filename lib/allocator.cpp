@@ -351,6 +351,48 @@ void Allocator::find_chunks_within_chunk(Chunk_Metadata* top, void* root_chunk_l
     }
 }
 
+void Allocator::gc_sweep()
+{
+    Chunk_Metadata* current = reinterpret_cast<Chunk_Metadata*>(heap_start);
+
+    while (current != nullptr && reinterpret_cast<char*>(current) < reinterpret_cast<char*>(heap_start) + used_heap_size) {
+        if (!current->gc_mark) {
+            out << "\tSweeping pointer -> " << (void*)current << LBR;
+            log_info();
+
+            current->is_free = true;
+            allocated_chunks_root = remove_node_in_bst(allocated_chunks_root, (void*)current);
+
+            // Coalesce with next chunk if it's free
+            if (current->next != nullptr && current->next->is_free) {
+                out << "\tCoalescing with next chunk -> " << (void*)current->next << LBR;
+                log_info();
+                current->chunk_size += current->next->chunk_size + sizeof(Chunk_Metadata);
+                current->next = current->next->next;
+                if (current->next != nullptr) {
+                    current->next->prev = current;
+                }
+            }
+
+            // Coalesce with previous chunk if it's free
+            if (current->prev != nullptr && current->prev->is_free) {
+                out << "\tCoalescing with previous chunk -> " << (void*)current->prev << LBR;
+                log_info();
+                current->prev->chunk_size += current->chunk_size + sizeof(Chunk_Metadata);
+                current->prev->next = current->next;
+                if (current->next != nullptr) {
+                    current->next->prev = current->prev;
+                }
+                current = current->prev; // Move current to previous chunk after coalescing
+                continue;
+            }
+        }
+        // Move to the next chunk
+        current = current->next;
+    }
+}
+
+
 
 Garbage_Collector& Allocator::getGC()
 {

@@ -121,6 +121,16 @@ void Garbage_Collector::find_chunks_within_chunk(Chunk_Metadata* top)
     alloc.find_chunks_within_chunk(top, root_chunk_list, root_chunk_list_size);
 }
 
+void Garbage_Collector::sweep_phase()
+{
+    out << "Starting sweeping phase.. " << LBR;
+    log_info();
+    Allocator& alloc = Allocator::getInstance();
+    alloc.gc_sweep();
+    out << "Finished Sweeping phase" << LBR;
+    log_info();
+}
+
 
 
 Garbage_Collector& Garbage_Collector::getInstance(void* heap_start, size_t HEAP_CAPACITY, bool debug_mode)
@@ -131,7 +141,7 @@ Garbage_Collector& Garbage_Collector::getInstance(void* heap_start, size_t HEAP_
 
 void Garbage_Collector::gc_collect()
 {
-    out << "Called GC Collect" << LBR;
+    out << "-------- Called GC Collect --------" << LBR;
     log_info();
 
     get_roots();
@@ -139,6 +149,8 @@ void Garbage_Collector::gc_collect()
     unmark_chunks();
     
     mark_phase();
+
+    sweep_phase();
     
 }
 
@@ -176,7 +188,7 @@ void Garbage_Collector::gc_dump()
         out << i << ". " << potential_stack_vars_containing_roots_list[i] << LBR;
         log_info();
     }
-    out << "Potenntial Root Chunk List Size = " << potential_roots_size << LBR;
+    out << "Potential Root Chunk List Size = " << potential_roots_size << LBR;
     log_info();
 
     out << "--- Root chunk list ----" << LBR;

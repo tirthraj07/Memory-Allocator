@@ -26,6 +26,7 @@ private:
 	void get_roots();
 	void unmark_chunks();
 	void find_chunks_within_chunk(Chunk_Metadata* top);
+	void sweep_phase();
 
 public:
 	
