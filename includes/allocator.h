@@ -123,8 +123,22 @@ public:
 		}
 	}
 
+	/**
+	 * @brief Retrieves the garbage collector instance associated with the allocator.
+	 * @return Reference to the Garbage_Collector instance.
+	 */
 	Garbage_Collector& getGC();
 	
+	/**
+	 * @brief Assigns a source pointer to a destination pointer and tracks the destination in GC.
+	 *
+	 * Useful for managing root objects in the garbage collector.
+	 *
+	 * @tparam T Type of the pointers.
+	 * @param dest Pointer to the destination variable.
+	 * @param src Pointer to the source variable.
+	 * @return Updated destination pointer.
+	 */
 	template <typename T>
 	T* assign(T** dest, T* src) {
 		out << "Called assign for dest = " << dest << " , src = " << src << '\n';
@@ -139,6 +153,7 @@ public:
 		return *dest;
 	}
 
+	// FRIEND CLASSES
 	friend class Garbage_Collector;
 	friend class Chunk_Metadata;
 	
@@ -240,9 +255,34 @@ private:
 	 */
 	void log_info();
 
+	/**
+	 * Retrieves the metadata of the memory chunk containing the given pointer.
+	 *
+	 * @param ptr A pointer within the chunk whose metadata is to be retrieved.
+	 * @return A pointer to the metadata of the chunk if found, otherwise nullptr.
+	 */
 	Chunk_Metadata* get_chunk(void* ptr);
+	
+	/**
+	 * Unmarks all memory chunks in the heap by resetting their garbage collection (GC) mark.
+	 * This prepares the chunks for the marking phase of the garbage collection process.
+	 */
 	void gc_unmark_chunks();
+
+	/**
+	 * Identifies potential pointers stored within a given chunk and populates them
+	 * in the root chunk list for further processing in the garbage collection process.
+	 *
+	 * @param top Pointer to the metadata of the top chunk to analyze.
+	 * @param root_chunk_list An array to store pointers to chunks found within the top chunk.
+	 * @param root_chunk_list_size Reference to the current size of the root chunk list, updated as new chunks are added.
+	 */
 	void find_chunks_within_chunk(Chunk_Metadata* top, void* root_chunk_list[], int& root_chunk_list_size);
+	
+	/**
+	* Performs the sweep phase of the garbage collection process.
+	* Frees memory chunks that are unmarked, and coalesces adjacent free chunks to optimize memory usage.
+	*/
 	void gc_sweep();
 };
 
