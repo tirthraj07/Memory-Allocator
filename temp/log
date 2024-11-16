@@ -1,0 +1,372 @@
+[INFO]    INITILIZATING NODE POOL..
+
+[INFO]    INITILIZATING HEAP..
+
+[INFO]    INITIAL HEAP CAPACITY 1048576
+
+[INFO]    Chunk Metadata Size : 40
+
+[INFO]    Heap initialized at heap_start : 0x55b5ec69a400 with capacity of 1048576
+
+[INFO]    Garbage Collector Instantiated
+
+[INFO]    HEAP_START : 0x55b5ec69a400
+
+[INFO]    HEAP_CAPACITY : 1048576
+
+[INFO]    Allocate request -> root = 0x7ffca5ac62b0
+
+
+
+
+
+[INFO]    Received Allocation Request for 24
+
+[INFO]    Creating first chunk
+
+[INFO]    Received Request for inserting node in BST: root=0 chunk_ptr=0x55b5ec69a428 chunk_size=24
+
+[INFO]    Received request for node allocation: size=24 chunk=0x55b5ec69a428
+
+[INFO]    Node: i=0
+
+[INFO]     node_pool=0x55b5ec692000
+
+[INFO]     node_used=0
+
+[INFO]    Found free node
+
+[INFO]    Called add_gc_roots for root -> 0x7ffca5ac62b0
+Called is_pointer_within_heap for ptr = 0x55b5ec69a428
+
+[INFO]    HEAP_START = 0x55b5ec69a400
+
+[INFO]    HEAP_END = 0x55b5ec79a400
+
+[INFO]    Address = 0x55b5ec69a428
+
+[INFO]    Inserting root 0x7ffca5ac62b0 in potential_roots_list
+
+&arr2 = 0x7ffca5ac62b0
+arr2 = 0x55b5ec69a428
+
+
+
+
+[INFO]    Received Allocation Request for 40
+
+[INFO]    Received Request for inserting node in BST: root=0x55b5ec692000 chunk_ptr=0x55b5ec69a468 chunk_size=40
+
+[INFO]    Received Request for inserting node in BST: root=0 chunk_ptr=0x55b5ec69a468 chunk_size=40
+
+[INFO]    Received request for node allocation: size=40 chunk=0x55b5ec69a468
+
+[INFO]    Node: i=0
+
+[INFO]     node_pool=0x55b5ec692000
+
+[INFO]     node_used=1
+
+[INFO]    Node: i=1
+
+[INFO]     node_pool=0x55b5ec692020
+
+[INFO]     node_used=0
+
+[INFO]    Found free node
+
+
+
+
+
+[INFO]    Received Allocation Request for 40
+
+[INFO]    Received Request for inserting node in BST: root=0x55b5ec692000 chunk_ptr=0x55b5ec69a4b8 chunk_size=40
+
+[INFO]    Received Request for inserting node in BST: root=0x55b5ec692020 chunk_ptr=0x55b5ec69a4b8 chunk_size=40
+
+[INFO]    Received Request for inserting node in BST: root=0 chunk_ptr=0x55b5ec69a4b8 chunk_size=40
+
+[INFO]    Received request for node allocation: size=40 chunk=0x55b5ec69a4b8
+
+[INFO]    Node: i=0
+
+[INFO]     node_pool=0x55b5ec692000
+
+[INFO]     node_used=1
+
+[INFO]    Node: i=1
+
+[INFO]     node_pool=0x55b5ec692020
+
+[INFO]     node_used=1
+
+[INFO]    Node: i=2
+
+[INFO]     node_pool=0x55b5ec692040
+
+[INFO]     node_used=0
+
+[INFO]    Found free node
+
+
+
+
+
+[INFO]    Received Allocation Request for 40
+
+[INFO]    Received Request for inserting node in BST: root=0x55b5ec692000 chunk_ptr=0x55b5ec69a508 chunk_size=40
+
+[INFO]    Received Request for inserting node in BST: root=0x55b5ec692020 chunk_ptr=0x55b5ec69a508 chunk_size=40
+
+[INFO]    Received Request for inserting node in BST: root=0x55b5ec692040 chunk_ptr=0x55b5ec69a508 chunk_size=40
+
+[INFO]    Received Request for inserting node in BST: root=0 chunk_ptr=0x55b5ec69a508 chunk_size=40
+
+[INFO]    Received request for node allocation: size=40 chunk=0x55b5ec69a508
+
+[INFO]    Node: i=0
+
+[INFO]     node_pool=0x55b5ec692000
+
+[INFO]     node_used=1
+
+[INFO]    Node: i=1
+
+[INFO]     node_pool=0x55b5ec692020
+
+[INFO]     node_used=1
+
+[INFO]    Node: i=2
+
+[INFO]     node_pool=0x55b5ec692040
+
+[INFO]     node_used=1
+
+[INFO]    Node: i=3
+
+[INFO]     node_pool=0x55b5ec692060
+
+[INFO]     node_used=0
+
+[INFO]    Found free node
+
+&arr2 = 0x7ffca5ac62b0
+arr2 = 0x55b5ec69a428
+0x55b5ec69a468 :
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+0x55b5ec69a4b8 :
+        0, 2, 4, 6, 8, 10, 12, 14, 16, 18,
+0x55b5ec69a508 :
+        0, 3, 6, 9, 12, 15, 18, 21, 24, 27,
+----------------------------------------
+Heap Dump:
+Total Heap Capacity: 1048576 bytes
+Used Heap Size: 304 bytes
+Chunks:
+Chunk at: 0x55b5ec69a400, Size: 24 bytes, Allocated, gc_mark : UNMARKED, Next: 0x55b5ec69a440, Prev: 0
+Chunk at: 0x55b5ec69a440, Size: 40 bytes, Allocated, gc_mark : UNMARKED, Next: 0x55b5ec69a490, Prev: 0x55b5ec69a400
+Chunk at: 0x55b5ec69a490, Size: 40 bytes, Allocated, gc_mark : UNMARKED, Next: 0x55b5ec69a4e0, Prev: 0x55b5ec69a440
+Chunk at: 0x55b5ec69a4e0, Size: 40 bytes, Allocated, gc_mark : UNMARKED, Next: 0, Prev: 0x55b5ec69a490
+Summary:
+Total Allocated Memory: 144 bytes
+Total Free Memory: 0 bytes
+Number of Allocated Chunks: 4
+Number of Free Chunks: 0
+----------------------------------------
+[INFO]    ----- GC DUMP -----
+
+[INFO]    ---- Potential Root Chunk List ----
+
+[INFO]    0. 0x7ffca5ac62b0
+
+[INFO]    Potenntial Root Chunk List Size = 1
+
+[INFO]    --- Root chunk list ----
+
+[INFO]    Root Chunk List Size = 0
+
+[INFO]    Called GC Collect
+
+[INFO]    get_roots() called
+
+[INFO]    0. Potential root = 0x7ffca5ac62b0, *Potential root = 0x55b5ec69a428
+
+[INFO]    Called is_pointer_within_heap for ptr = 0x55b5ec69a428
+
+[INFO]    HEAP_START = 0x55b5ec69a400
+
+[INFO]    HEAP_END = 0x55b5ec79a400
+
+[INFO]    Address = 0x55b5ec69a428
+
+[INFO]    Found valid chunk. Chunk pointer -> 0x55b5ec69a400
+
+[INFO]    Root list updated. Total roots: 1
+
+[INFO]    Called unmarked_chunks()..
+Unmarking chunks...
+
+[INFO]    Unmarked << 0x55b5ec69a400
+
+[INFO]    Unmarked << 0x55b5ec69a440
+
+[INFO]    Unmarked << 0x55b5ec69a490
+
+[INFO]    Unmarked << 0x55b5ec69a4e0
+
+[INFO]    GC Unmarking done
+[INFO]    Starting marking phase..
+
+[INFO]    Searching chunks within >> 0x55b5ec69a400
+
+[INFO]    SEARCH DETAILS
+chunk_ptr = 0x55b5ec69a400
+data_start = 0x55b5ec69a428
+data_end = 0x55b5ec69a440
+
+[INFO]    Found valid chunk. Chunk pointer -> 0x55b5ec69a440
+
+[INFO]    Found valid chunk. Chunk pointer -> 0x55b5ec69a490
+
+[INFO]    Found valid chunk. Chunk pointer -> 0x55b5ec69a4e0
+
+[INFO]    ------------ CHUNK : 0x55b5ec69a400 -> 0x55b5ec69a428 MARKED ------------
+[INFO]    Searching chunks within >> 0x55b5ec69a4e0
+
+[INFO]    SEARCH DETAILS
+chunk_ptr = 0x55b5ec69a4e0
+data_start = 0x55b5ec69a508
+data_end = 0x55b5ec69a530
+
+[INFO]    Pointer not found within Chunk pointed by chunk_ptr = 0x55b5ec69a4e0
+
+[INFO]    ------------ CHUNK : 0x55b5ec69a4e0 -> 0x55b5ec69a508 MARKED ------------
+[INFO]    Searching chunks within >> 0x55b5ec69a490
+
+[INFO]    SEARCH DETAILS
+chunk_ptr = 0x55b5ec69a490
+data_start = 0x55b5ec69a4b8
+data_end = 0x55b5ec69a4e0
+
+[INFO]    Pointer not found within Chunk pointed by chunk_ptr = 0x55b5ec69a490
+
+[INFO]    ------------ CHUNK : 0x55b5ec69a490 -> 0x55b5ec69a4b8 MARKED ------------
+[INFO]    Searching chunks within >> 0x55b5ec69a440
+
+[INFO]    SEARCH DETAILS
+chunk_ptr = 0x55b5ec69a440
+data_start = 0x55b5ec69a468
+data_end = 0x55b5ec69a490
+
+[INFO]    Pointer not found within Chunk pointed by chunk_ptr = 0x55b5ec69a440
+
+[INFO]    ------------ CHUNK : 0x55b5ec69a440 -> 0x55b5ec69a468 MARKED ------------
+----------------------------------------
+Heap Dump:
+Total Heap Capacity: 1048576 bytes
+Used Heap Size: 304 bytes
+Chunks:
+Chunk at: 0x55b5ec69a400, Size: 24 bytes, Allocated, gc_mark : MARKED, Next: 0x55b5ec69a440, Prev: 0
+Chunk at: 0x55b5ec69a440, Size: 40 bytes, Allocated, gc_mark : MARKED, Next: 0x55b5ec69a490, Prev: 0x55b5ec69a400
+Chunk at: 0x55b5ec69a490, Size: 40 bytes, Allocated, gc_mark : MARKED, Next: 0x55b5ec69a4e0, Prev: 0x55b5ec69a440
+Chunk at: 0x55b5ec69a4e0, Size: 40 bytes, Allocated, gc_mark : MARKED, Next: 0, Prev: 0x55b5ec69a490
+Summary:
+Total Allocated Memory: 144 bytes
+Total Free Memory: 0 bytes
+Number of Allocated Chunks: 4
+Number of Free Chunks: 0
+----------------------------------------
+[INFO]    Called assign for dest = 0x55b5baa93fac , src = 0x55b5ec69a468
+
+[INFO]    Called add_gc_roots for root -> 0x55b5ec69a468
+Called is_pointer_within_heap for ptr = 0x100000000
+
+[INFO]    HEAP_START = 0x55b5ec69a400
+
+[INFO]    HEAP_END = 0x55b5ec79a400
+
+[INFO]    Address = 0x100000000
+
+[INFO]    Called assign for dest = 0x7ffca5ac62b0 , src = 0x55b5ec69a468
+
+[INFO]    Called add_gc_roots for root -> 0x55b5ec69a468
+Called is_pointer_within_heap for ptr = 0x100000000
+
+[INFO]    HEAP_START = 0x55b5ec69a400
+
+[INFO]    HEAP_END = 0x55b5ec79a400
+
+[INFO]    Address = 0x100000000
+
+[INFO]    Called assign for dest = 0x10000ffff , src = 0x55b5ec69a468
+
+[INFO]    Called add_gc_roots for root -> 0x55b5ec69a468
+Called is_pointer_within_heap for ptr = 0x100000000
+
+[INFO]    HEAP_START = 0x55b5ec69a400
+
+[INFO]    HEAP_END = 0x55b5ec79a400
+
+[INFO]    Address = 0x100000000
+
+------- SETTING arr2 = nullptr -------
+[INFO]    ----- GC DUMP -----
+
+[INFO]    ---- Potential Root Chunk List ----
+
+[INFO]    0. 0x7ffca5ac62b0
+
+[INFO]    Potenntial Root Chunk List Size = 1
+
+[INFO]    --- Root chunk list ----
+
+[INFO]    Root Chunk List Size = 0
+
+[INFO]    Called GC Collect
+
+[INFO]    get_roots() called
+
+[INFO]    0. Potential root = 0x7ffca5ac62b0, *Potential root = 0
+
+[INFO]    Called is_pointer_within_heap for ptr = 0
+
+[INFO]    HEAP_START = 0x55b5ec69a400
+
+[INFO]    HEAP_END = 0x55b5ec79a400
+
+[INFO]    Address = 0
+
+[INFO]    Root list updated. Total roots: 0
+
+[INFO]    Called unmarked_chunks()..
+Unmarking chunks...
+
+[INFO]    Unmarked << 0x55b5ec69a400
+
+[INFO]    Unmarked << 0x55b5ec69a440
+
+[INFO]    Unmarked << 0x55b5ec69a490
+
+[INFO]    Unmarked << 0x55b5ec69a4e0
+
+[INFO]    GC Unmarking done
+[INFO]    Starting marking phase..
+
+[INFO]    Nothing to mark
+
+----------------------------------------
+Heap Dump:
+Total Heap Capacity: 1048576 bytes
+Used Heap Size: 304 bytes
+Chunks:
+Chunk at: 0x55b5ec69a400, Size: 24 bytes, Allocated, gc_mark : UNMARKED, Next: 0x55b5ec69a440, Prev: 0
+Chunk at: 0x55b5ec69a440, Size: 40 bytes, Allocated, gc_mark : UNMARKED, Next: 0x55b5ec69a490, Prev: 0x55b5ec69a400
+Chunk at: 0x55b5ec69a490, Size: 40 bytes, Allocated, gc_mark : UNMARKED, Next: 0x55b5ec69a4e0, Prev: 0x55b5ec69a440
+Chunk at: 0x55b5ec69a4e0, Size: 40 bytes, Allocated, gc_mark : UNMARKED, Next: 0, Prev: 0x55b5ec69a490
+Summary:
+Total Allocated Memory: 144 bytes
+Total Free Memory: 0 bytes
+Number of Allocated Chunks: 4
+Number of Free Chunks: 0
+----------------------------------------

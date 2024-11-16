@@ -1,7 +1,7 @@
 #ifndef GARBAGE_COLLECTOR_H
 #define GARBAGE_COLLECTOR_H
 #pragma once
-
+#include "chunk_metadata.h"
 #include <sstream>
 #include <string>
 #include <iostream>
@@ -24,6 +24,8 @@ private:
 
 	bool is_pointer_within_heap(void* ptr);
 	void get_roots();
+	void unmark_chunks();
+	void find_chunks_within_chunk(Chunk_Metadata* top);
 
 public:
 	
@@ -35,8 +37,9 @@ public:
 	void gc_collect();
 	void add_gc_roots(void** root);
 	void gc_dump();
+	void mark_phase();
 
-
+	friend class Allocator;
 };
 
 

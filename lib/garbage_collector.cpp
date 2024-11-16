@@ -56,33 +56,71 @@ bool Garbage_Collector::is_pointer_within_heap(void* ptr)
 void Garbage_Collector::get_roots() {
     out << "get_roots() called" << LBR;
     log_info();
-    root_chunk_list_size = 0; // Reset root list size
+
+    // Reset the root list size for this round
+    root_chunk_list_size = 0;
+
+    // Variable `j` is used to compact the list of potential stack variables containing roots for next round
+    int j = 0;
+
+    // Iterate through all potential stack variables that may contain pointers to heap chunks
     for (int i = 0; i < potential_roots_size; i++) {
+        // Fetch the potential root pointer from the list
         void** potential_root = potential_stack_vars_containing_roots_list[i];
-        out << i << ". Potential root = " << (void*)potential_root << LBR;
-        log_info();
-        out << "\t*Potential root = " << *potential_root << LBR;
+
+        // Skip this iteration if the potential root is a null pointer
+        if (potential_root == nullptr) {
+            continue;
+        }
+
+        out << i << ". Potential root = " << (void*)potential_root
+            << ", *Potential root = " << *potential_root << LBR;
         log_info();
 
-        // Check if the pointer is within the heap
+        // Check if the dereferenced value (the actual pointer) lies within the heap's boundaries
         if (is_pointer_within_heap(*potential_root)) {
-            // Get the chunk associated with the potential root
+            // If it is within the heap, try to retrieve the metadata of the chunk this pointer points to
             Allocator& alloc = Allocator::getInstance(DEBUG_MODE);
             Chunk_Metadata* chunk_ptr = alloc.get_chunk(*potential_root);
 
-            // If the chunk is valid, add it to the root list
+            // If a valid chunk is found, add it to the root chunk list
             if (chunk_ptr != nullptr) {
-                // Store the pointer to the actual data area of the chunk
+                // Add the pointer to the chunk metadata to the root chunk list
                 root_chunk_list[root_chunk_list_size] = reinterpret_cast<void*>(chunk_ptr);
                 root_chunk_list_size++;
+
+                // Optimize: Retain only valid roots in the potential stack variables list for the next call
+                potential_stack_vars_containing_roots_list[j] = potential_root;
+                j++; 
             }
         }
     }
 
-    // Debug log: Print root list size and details (optional)
+    // Update the size of the potential stack variables list to include only valid roots
+    potential_roots_size = j;
+
     out << "Root list updated. Total roots: " << root_chunk_list_size << LBR;
     log_info();
 }
+
+void Garbage_Collector::unmark_chunks()
+{
+    out << "Called unmarked_chunks().." << LBR
+        << "Unmarking chunks..." << LBR;
+    log_info();
+
+    Allocator& alloc = Allocator::getInstance();
+    alloc.gc_unmark_chunks();
+}
+
+void Garbage_Collector::find_chunks_within_chunk(Chunk_Metadata* top)
+{
+    out << "Searching chunks within >> " << top << LBR;
+    log_info();
+    Allocator& alloc = Allocator::getInstance(DEBUG_MODE);
+    alloc.find_chunks_within_chunk(top, root_chunk_list, root_chunk_list_size);
+}
+
 
 
 Garbage_Collector& Garbage_Collector::getInstance(void* heap_start, size_t HEAP_CAPACITY, bool debug_mode)
@@ -97,8 +135,11 @@ void Garbage_Collector::gc_collect()
     log_info();
 
     get_roots();
-
-
+    
+    unmark_chunks();
+    
+    mark_phase();
+    
 }
 
 void Garbage_Collector::add_gc_roots(void** root)
@@ -135,6 +176,8 @@ void Garbage_Collector::gc_dump()
         out << i << ". " << potential_stack_vars_containing_roots_list[i] << LBR;
         log_info();
     }
+    out << "Potenntial Root Chunk List Size = " << potential_roots_size << LBR;
+    log_info();
 
     out << "--- Root chunk list ----" << LBR;
     log_info();
@@ -142,4 +185,36 @@ void Garbage_Collector::gc_dump()
         out << i << ". " << root_chunk_list[i] << LBR;
         log_info();
     }
+
+    out << "Root Chunk List Size = " << root_chunk_list_size << LBR;
+    log_info();
+}
+
+void Garbage_Collector::mark_phase()
+{
+    out << "Starting marking phase.." << LBR;
+    log_info();
+    // Use the root_chunk_list as stack
+    if (root_chunk_list_size == 0) {
+        out << "Nothing to mark" << LBR;
+        log_info();
+        return;
+    }
+
+    while (root_chunk_list_size > 0) {
+        root_chunk_list_size--;
+        Chunk_Metadata* top = reinterpret_cast<Chunk_Metadata*>(root_chunk_list[root_chunk_list_size]);
+
+        // Find pointers (chunk_ptrs) inside the current chunk and add them to the root list
+        // This expands the stack with new potential chunks to be marked
+        find_chunks_within_chunk(top);
+        
+        // Mark the chunk
+        top->gc_mark = true;
+        
+        out << "------------ CHUNK : " << top << " -> " << top->currentChunk() << " MARKED ------------";
+        log_info();
+
+    }
+
 }

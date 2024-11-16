@@ -246,8 +246,22 @@ void* Allocator::allocate(std::size_t size, void** root)
 
 Chunk_Metadata* Allocator::get_chunk(void* ptr)
 {
-    out << "Called get_chunk for ptr = " << ptr << LBR;
-    log_info();
+    //out << "Called get_chunk for ptr = " << ptr << LBR;
+    //log_info();
+
+    if (ptr == nullptr) {
+        out << "Called get_chunk with ptr = nullptr. Returing nullptr" << LBR;
+        log_info();
+        return nullptr;
+    }
+
+    if (reinterpret_cast<char*>(ptr) < reinterpret_cast<char*>(heap_start) ||
+        reinterpret_cast<char*>(ptr) > reinterpret_cast<char*>(heap_start) + used_heap_size) {
+        //out << "Ptr wasn't withing heap bounds" << LBR;
+        //log_info();
+        return nullptr;
+    }
+
     Chunk_Metadata* current = reinterpret_cast<Chunk_Metadata*>(heap_start);
 
 
@@ -268,6 +282,75 @@ Chunk_Metadata* Allocator::get_chunk(void* ptr)
     log_info();
     return nullptr;
 }
+
+void Allocator::gc_unmark_chunks()
+{
+    Chunk_Metadata* current = reinterpret_cast<Chunk_Metadata*>(heap_start);
+
+
+    while (current != nullptr && reinterpret_cast<char*>(current) < reinterpret_cast<char*>(heap_start) + used_heap_size) {
+        current->gc_mark = false;
+        out << "Unmarked << " << current << LBR;
+        log_info();
+
+        current = current->next;
+    }
+
+    out << "GC Unmarking done";
+    log_info();
+}
+
+void Allocator::find_chunks_within_chunk(Chunk_Metadata* top, void* root_chunk_list[], int& root_chunk_list_size) {
+    if (top == nullptr || top->chunk_size < sizeof(void*)) {
+        return;
+    }
+
+ 
+
+    char* data_start = reinterpret_cast<char*>(top) + sizeof(Chunk_Metadata);
+    char* data_end = data_start + top->chunk_size;
+
+    out << "SEARCH DETAILS " << LBR
+        << "chunk_ptr = " << (void*)top << LBR
+        << "data_start = " << (void*)data_start << LBR
+        << "data_end = " << (void*)data_end << LBR;
+    log_info();
+
+    bool exists = false;
+
+    for (char* current = data_start; current + sizeof(void*) <= data_end; current += 1) {
+        // Extract a potential pointer
+        void* potential_pointer = *reinterpret_cast<void**>(current);   //  ensures that the memory at the current location is treated as a pointer.
+        
+        //out << "Searching for potential pointer >> " << potential_pointer << LBR;
+        //log_info();
+
+        // Check if the pointer is within the heap
+        // Get the chunk metadata for the pointer
+        Chunk_Metadata* chunk_ptr = get_chunk(potential_pointer);
+
+        // If the chunk is valid and not already marked, add it to the root list
+        if (chunk_ptr != nullptr && !chunk_ptr->gc_mark) {
+            if (root_chunk_list_size >= 1000) {
+                out << "Root list is full. Skipping additional chunks." << LBR;
+                log_info();
+                return;
+            }
+
+            // Add the chunk to the root list and increment the size
+            root_chunk_list[root_chunk_list_size] = reinterpret_cast<void*>(chunk_ptr);
+            root_chunk_list_size++; 
+            exists = true;
+        }
+        
+    }
+
+    if (!exists) {
+        out << "Pointer not found within Chunk pointed by chunk_ptr = " << (void*)top << LBR;
+        log_info();
+    }
+}
+
 
 Garbage_Collector& Allocator::getGC()
 {
@@ -383,6 +466,7 @@ void Allocator::heap_dump()
                 << ", Size: " << current->chunk_size
                 << " bytes, "
                 << (current->is_free ? "Free" : "Allocated")
+                << ", gc_mark : " << (current->gc_mark ? "MARKED" : "UNMARKED")
                 << ", Next: " << current->next
                 << ", Prev: " << current->prev
                 << "\n";

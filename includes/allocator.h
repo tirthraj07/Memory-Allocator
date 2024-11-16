@@ -123,10 +123,25 @@ public:
 		}
 	}
 
-	Chunk_Metadata* get_chunk(void* ptr);
-
 	Garbage_Collector& getGC();
+	
+	template <typename T>
+	T* assign(T** dest, T* src) {
+		out << "Called assign for dest = " << dest << " , src = " << src << '\n';
+		log_info();
+		// Update the destination pointer
+		*dest = src;
 
+		// Track the destination variable in the GC roots list
+		gc->add_gc_roots(reinterpret_cast<void**>(dest));
+
+		// Return the updated destination
+		return *dest;
+	}
+
+	friend class Garbage_Collector;
+	friend class Chunk_Metadata;
+	
 private:
 	static const std::size_t INITIAL_HEAP_CAPACITY = 1024 * 1024; 	///< Initial heap capacity (1 MB).
 	void* heap_start;												///< Starting address of the heap.
@@ -224,6 +239,10 @@ private:
 	 * @param str The message to log.
 	 */
 	void log_info();
+
+	Chunk_Metadata* get_chunk(void* ptr);
+	void gc_unmark_chunks();
+	void find_chunks_within_chunk(Chunk_Metadata* top, void* root_chunk_list[], int& root_chunk_list_size);
 
 };
 
