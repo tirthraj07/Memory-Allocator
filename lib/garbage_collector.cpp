@@ -12,7 +12,7 @@
 
 
 
-Garbage_Collector::Garbage_Collector(bool debug_mode, void* heap_start, size_t HEAP_CAPACITY):heap_start(heap_start), HEAP_CAPACITY(HEAP_CAPACITY), DEBUG_MODE(debug_mode) {
+Garbage_Collector::Garbage_Collector(bool debug_mode, void* heap_start, size_t HEAP_CAPACITY):DEBUG_MODE(debug_mode), heap_start(heap_start), HEAP_CAPACITY(HEAP_CAPACITY) {
     out << "Garbage Collector Instantiated" << LBR;
     log_info();
     out << "HEAP_START : " << heap_start << LBR;

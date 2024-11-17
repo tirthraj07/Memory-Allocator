@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(MemoryAllocator VERSION 1.0
-                        DESCRIPTION "A Custom C++ Memory Allocator"
+                        DESCRIPTION "A Custom C++ Memory Allocator and Mark and Sweep Garbage Collector"
                         LANGUAGES CXX)
  
 

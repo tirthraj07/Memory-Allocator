@@ -71,22 +71,22 @@ public:
 	 * @brief Allocates memory for an object of type T and constructs it using
 	 *        the provided arguments.
 	 *
-	 * This function uses a custom memory allocator to allocate sufficient
-	 * memory for an object of type T. It then constructs the object in
-	 * the allocated memory using the provided arguments. This is done
-	 * using placement new, allowing the constructor of T to be called
-	 * directly in the allocated memory region.
+	 * This function uses a custom memory allocator to allocate memory for an object of type T.
+	 * If a valid root pointer is provided, it associates the allocation with the garbage collection (GC) root.
+	 * The object is then constructed in the allocated memory using placement new, allowing the constructor of T
+	 * to be called directly in the allocated memory region.
 	 *
 	 * @tparam T The type of the object to be allocated.
 	 * @tparam Args The types of the arguments to be forwarded to the
-	 *               constructor of T.
+	 *              constructor of T.
+	 * @param root A double pointer to a GC root. If provided, the allocated object is registered as a GC root.
 	 * @param args The arguments to be forwarded to the constructor of T.
 	 * @return T* A pointer to the constructed object of type T, or
 	 *             nullptr if the allocation fails.
 	 */
 	template <typename T, typename... Args>
-	T* allocate_new(Args&&... args) {
-		void* memory = allocate(sizeof(T));
+	T* allocate_new(T** root, Args&&... args) {
+		void* memory = allocate(sizeof(T), (void**)&root);
 		if (!memory) {
 			std::cerr << "Bad allocation Error" << std::endl;
 			return nullptr;
@@ -153,17 +153,23 @@ public:
 		return *dest;
 	}
 
+	bool GC_ENABLED = true;
+
 	// FRIEND CLASSES
 	friend class Garbage_Collector;
 	friend class Chunk_Metadata;
 	
 private:
 	static const std::size_t INITIAL_HEAP_CAPACITY = 1024 * 1024; 	///< Initial heap capacity (1 MB).
-	void* heap_start;												///< Starting address of the heap.
-	std::size_t used_heap_size;										///< The total amount of memory used in the heap.
-	std::size_t HEAP_CAPACITY;										///< The current capacity of the heap.
-
+	bool DEBUG_MODE = false;										///< Indicates if debugging mode is enabled.
 	Garbage_Collector* gc;
+	void* heap_start;												///< Starting address of the heap.
+	std::size_t HEAP_CAPACITY;										///< The current capacity of the heap.
+	std::size_t used_heap_size;										///< The total amount of memory used in the heap.
+	std::ostringstream out;											///< Output stream for logging purposes.
+
+
+
 
 	static const std::size_t MAX_NODES = 1024;						///< Maximum number of chunk pointers in the node pool.
 	BST_Node* node_pool;											///< Pool of BST nodes used to manage allocated chunks.
@@ -246,8 +252,7 @@ private:
 	*/
 	int expand_heap(std::size_t size);
 
-	std::ostringstream out;											///< Output stream for logging purposes.
-	bool DEBUG_MODE = false;										///< Indicates if debugging mode is enabled.
+
 
 	/**
 	 * @brief Logs informational messages if debugging is enabled.

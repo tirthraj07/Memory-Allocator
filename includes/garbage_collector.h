@@ -18,15 +18,6 @@
  */
 class Garbage_Collector {
 public:
-    /**
-     * @brief Provides access to the singleton instance of the garbage collector.
-     * @param heap_start Pointer to the start of the custom heap.
-     * @param HEAP_CAPACITY Total capacity of the heap in bytes.
-     * @param debug_mode Whether debug logging is enabled (default is false).
-     * @return Reference to the Garbage_Collector instance.
-     */
-    static Garbage_Collector& getInstance(void* heap_start, size_t HEAP_CAPACITY, bool debug_mode = false);
-
     // Deleted copy constructor and assignment operator to enforce singleton behavior.
     Garbage_Collector(const Garbage_Collector&) = delete;
     Garbage_Collector& operator=(const Garbage_Collector&) = delete;
@@ -37,11 +28,6 @@ public:
      */
     void gc_collect();
 
-    /**
-     * @brief Adds a root pointer to the list of known GC roots.
-     * @param root Pointer to the root variable.
-     */
-    void add_gc_roots(void** root);
 
     /**
      * @brief Dumps information about the garbage collector's state and the heap layout.
@@ -49,11 +35,6 @@ public:
      */
     void gc_dump();
 
-    /**
-     * @brief Performs the mark phase of the garbage collection process.
-     * Identifies all reachable memory chunks starting from root pointers.
-     */
-    void mark_phase();
 
     friend class Allocator;
 
@@ -77,6 +58,15 @@ private:
      * @param HEAP_CAPACITY Total capacity of the heap in bytes.
      */
     Garbage_Collector(bool debug_mode, void* heap_start, size_t HEAP_CAPACITY);
+
+    /**
+     * @brief Provides access to the singleton instance of the garbage collector.
+     * @param heap_start Pointer to the start of the custom heap.
+     * @param HEAP_CAPACITY Total capacity of the heap in bytes.
+     * @param debug_mode Whether debug logging is enabled (default is false).
+     * @return Reference to the Garbage_Collector instance.
+     */
+    static Garbage_Collector& getInstance(void* heap_start, size_t HEAP_CAPACITY, bool debug_mode = false);
 
     /**
      * @brief Logs memory management information if debugging is enabled.
@@ -111,6 +101,18 @@ private:
      * Identifies unmarked chunks, reclaims their memory, and merges adjacent free chunks.
      */
     void sweep_phase();
+
+    /**
+     * @brief Performs the mark phase of the garbage collection process.
+     * Identifies all reachable memory chunks starting from root pointers.
+     */
+    void mark_phase();
+
+    /**
+     * @brief Adds a root pointer to the list of known GC roots.
+     * @param root Pointer to the root variable.
+     */
+    void add_gc_roots(void** root);
 
 };
 

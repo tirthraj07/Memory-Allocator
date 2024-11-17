@@ -12,7 +12,7 @@
 #define LBR '\n'
 
 
-Allocator::Allocator(bool debug_mode):gc(NULL), DEBUG_MODE(debug_mode)
+Allocator::Allocator(bool debug_mode):DEBUG_MODE(debug_mode), gc(NULL)
 {       
     out << "INITILIZATING NODE POOL.." << LBR;
     log_info();
@@ -237,11 +237,11 @@ void* Allocator::allocate(std::size_t size, void** root)
     if (root != NULL) {
         out << "Allocate request -> root = " << root << LBR;
         log_info();
-        *root = allocate(size, true);
+        *root = allocate(size, GC_ENABLED);
         gc->add_gc_roots(root);
         return *root;
     }
-    return allocate(size, true);
+    return allocate(size, GC_ENABLED);
 }
 
 Chunk_Metadata* Allocator::get_chunk(void* ptr)
