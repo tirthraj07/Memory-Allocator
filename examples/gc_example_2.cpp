@@ -7,12 +7,12 @@ class MyClass {
 public:
 	int myint;
 
-	MyClass(int myint): myint(myint) {
+	MyClass(int myint) : myint(myint) {
 		std::cout << "My Class Constructor Called" << std::endl;
 		std::cout << "My Class ID = " << myint << std::endl;
 	}
 
-	~MyClass(){
+	~MyClass() {
 		std::cout << "My Class Destructor Called" << std::endl;
 		std::cout << "My Class ID = " << myint << std::endl;
 	}
@@ -24,15 +24,15 @@ public:
 
 };
 
-int main(){
+int main() {
 
 	// By Default, DEBUG_MODE = false. To enable debug logs, you can do DEBUG_MODE = true
-	
-	bool DEBUG_MODE = true;
-	Allocator& alloc = Allocator::getInstance(DEBUG_MODE);
-	
+	/*
+		bool DEBUG_MODE = true;
+		Allocator& alloc = Allocator::getInstance(DEBUG_MODE);
+	*/
 
-	//Allocator& alloc = Allocator::getInstance();
+	Allocator& alloc = Allocator::getInstance();
 
 	// By Default, GC_ENABLED = true. You can automatic garbage collection by setting GC_ENABLED = false;
 
@@ -129,6 +129,7 @@ int main(){
 	Chunks:
 		Chunk at: 0x559db2cbd400, Size: 156 bytes, Free, gc_mark : UNMARKED, Next: 0, Prev: 0
 	*/
+
 
 
 }

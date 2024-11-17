@@ -31,10 +31,20 @@ public:
 	
 	/**
 	 * @brief Allocates memory of a specified size from the heap.
-	 * @param size The size of memory to allocate.
-	 * @return Pointer to the allocated memory, or nullptr if allocation fails.
+	 *
+	 * This function provides dynamic memory allocation from the custom heap.
+	 * It can also register the allocated memory as a garbage collection root if the `root` parameter is provided.
+	 *
+	 * @param size The size of memory to allocate in bytes.
+	 * @param root (Optional) A pointer to a pointer where the address of the
+	 *             allocated memory will be stored. If provided, the allocated
+	 *             memory is treated as a GC root, and its reference is tracked
+	 *             by the garbage collector to prevent it from being reclaimed.
+	 *             Use this when you need persistent references in your program.
+	 * @return Pointer to the allocated memory, or nullptr if the allocation fails.
+	 *
+	 * If `root` is not provided (or set to `nullptr`), the memory is allocated without being registered as a GC root.
 	 */
-
 	void* allocate(std::size_t size, void** root=NULL);
 
 	/**

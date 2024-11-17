@@ -1,19 +1,26 @@
-﻿# Dynamic Heap Memory Allocator
+﻿# Dynamic Heap Memory Allocator with Integrated Garbage Collection
 ### By Tirthraj Mahajan
 
-This project is a custom memory allocator in C++ from scratch designed to manage memory with fine control and efficiency. 
-It implements chunk-based memory management using a best-fit allocation strategy and a binary search tree (BST) to track free chunks by size. We leverage the sbrk system call to manage heap space, providing dynamic expansion and shrinkage of memory as needed.
+This project is a custom memory allocator in C++ designed from scratch to manage memory with fine control and efficiency, now enhanced with an integrated mark-and-sweep garbage collection mechanism. 
+It implements chunk-based memory management using a best-fit allocation strategy and a binary search tree (BST) to track free chunks by size. We leverage the sbrk system call to dynamically manage heap space, providing both expansion and shrinkage as needed.
 
-To reduce internal fragmentation, our allocator coalesces adjacent free chunks, combining them into larger blocks. 
+To reduce internal fragmentation, the allocator coalesces adjacent free chunks, combining them into larger blocks. 
 This coalescing strategy optimizes memory usage by preventing small, unusable chunks from scattering across the heap, ensuring more contiguous memory blocks are available for future allocations. 
-The allocator also provides a custom allocate_new function that uses templates and placement syntax, allowing for efficient object construction within allocated memory.
+Additionally, the allocator provides a custom allocate_new function that uses templates and placement syntax, allowing for efficient object construction directly within allocated memory.
 
+### **Garbage Collection Process**  
+The **mark-and-sweep garbage collection** is implemented using **Depth-First Search (DFS)** to traverse the object graph during the mark phase. The allocator identifies reachable memory chunks starting from a set of GC roots and marks them as "in use." In the sweep phase, a **sliding window algorithm** scans the heap for unmarked memory chunks, reclaiming unused memory and coalescing adjacent free chunks to optimize space usage.
+
+This project employs a **stop-the-world garbage collection** approach, meaning that during garbage collection, the execution of the program is temporarily paused. This ensures the integrity of the memory being managed, as no new allocations or deallocations occur while the mark-and-sweep algorithm is in progress. Although this approach simplifies the implementation and guarantees correctness, it may introduce brief pauses in execution, making it more suitable for systems where occasional interruptions are acceptable.
+
+This integration of garbage collection into the allocator enhances its robustness by automating memory management while maintaining fine-grained control and efficiency. It exemplifies a blend of classic algorithms, modern optimization techniques, and foundational principles of memory management, paving the way for further innovation in custom allocator design.
 
 ## Strategies Used
 
 1. **Chunk-based Memory Management**: Memory is divided into chunks, each managed by metadata containing allocation status, size, and neighboring chunk information for merging.
 2. **Best-Fit Allocation**: To reduce fragmentation, the allocator searches for the best-fitting free chunk that matches the requested size.
 3. **Binary Search Tree (BST)**: A BST is used to organize free chunks efficiently by size for allocation and by pointer for deallocation, optimizing memory access.
+4. **Mark-and-Sweep Garbage Collection** : Ensures unused memory is reclaimed automatically, reducing memory leaks and simplifying memory management.
 
 ---
 
@@ -26,12 +33,14 @@ root
 ├── includes
 │   ├── allocator.h         # Header for Allocator class, containing main allocation methods
 │   ├── chunk_metadata.h    # Header for Chunk_Metadata class, tracking chunk data
+│   ├── garbage_collector.h # Header for Garbage_Collector Class, for garbage collection process
 │   └── bst_node.h          # Header for BST_Node class, managing BST nodes for chunk management
 │
 ├── lib
-│   ├── allocator.cpp       # Implementation of Allocator class functions
-│   ├── chunk_metadata.cpp  # Implementation of Chunk_Metadata functions
-│   └── bst_node.cpp        # Implementation of BST_Node functions
+│   ├── allocator.cpp       	# Implementation of Allocator class functions
+│   ├── chunk_metadata.cpp  	# Implementation of Chunk_Metadata functions
+│   ├── garbage_collector.cpp 	# Implementation of Garbage_collection functions
+│   └── bst_node.cpp        	# Implementation of BST_Node functions
 │
 ├── src
 │   └── main.cpp            # Main entry point, testing memory allocation and deallocation
@@ -79,9 +88,13 @@ Use Docker to run the project:
 #include "allocator.h"
 
 int main(){
+
 	Allocator& alloc = Allocator::getInstance();		        // Get the instance of allocator 
+	alloc.GC_ENABLED = false;									// Disable automatic Garbage Collection for this example
+	
 	int* int_arr = (int*)alloc.allocate(sizeof(int) * 10);		// Allocate 10 integers in heap
 	
+
 	for (int i = 0; i < 10; i++) {
 		int_arr[i] = i;
 	}
@@ -92,6 +105,7 @@ int main(){
 	std::cout << std::endl;
 
 	alloc.deallocate(int_arr);
+
 }
 ```
 
@@ -102,179 +116,226 @@ int main(){
 
 **Explanation**: The allocator requests space for 10 integers, prints allocation details, and then successfully deallocates the memory.
 
-### Example 2: Create and Destroy Object
+### Example 2: Basic Memory Allocation With GC Enabled
+**Title**: Allocating and Deallocating Memory with automatic garbage collection on
+
+**Description**: This example demonstrates allocating memory for an integer array and then deallocating it.
+
+**Code**:
+```cpp
+
+	Allocator& alloc = Allocator::getInstance();		        // Get the instance of allocator 
+	// GC is enabled by default
+	
+	int* int_arr = (int*)alloc.allocate(sizeof(int) * 10, (void**)&int_arr);		// Allocate 10 integers in heap
+	
+	/*
+	Here we provide an option root parameter.
+	root (Optional) A pointer to a pointer where the address of the
+	             allocated memory will be stored. If provided, the allocated
+	             memory is treated as a GC root, and its reference is tracked
+	             by the garbage collector to prevent it from being reclaimed.
+	             Use this when you need persistent references in your program.
+	
+	*/
+
+	for (int i = 0; i < 10; i++) {
+		int_arr[i] = i;
+	}
+
+	for (int i = 0; i < 10; i++) {
+		std::cout << int_arr[i] << " ";
+	}
+	std::cout << std::endl;
+
+	alloc.deallocate(int_arr);
+
+```
+
+**Output**:
+```
+0 1 2 3 4 5 6 7 8 9
+```
+
+### Example 3: Create and Destroy Object
 **Title**: Implementation of 'new' and 'delete' keyword
 
 **Description**: This example demonstrates how to create and delete custom objects
 
 **Code**:
 ```cpp
+#include <iostream>
+#include "allocator.h"
+#include "garbage_collector.h"
+
+// Example Class to showcase Allocator and GC
 class MyClass {
 public:
-	MyClass(std::string param) {
-		std::cout << "My Class Constructor called" << std::endl;
-		std::cout << "Param passed : " << param << std::endl;
+	int myint;
+
+	MyClass(int myint): myint(myint) {
+		std::cout << "My Class Constructor Called" << std::endl;
+		std::cout << "My Class ID = " << myint << std::endl;
 	}
 
-	~MyClass() {
-		std::cout << "My Class Destructor called" << std::endl;
+	~MyClass(){
+		std::cout << "My Class Destructor Called" << std::endl;
+		std::cout << "My Class ID = " << myint << std::endl;
 	}
 
 	void foo() {
-		std::cout << "My Class function called" << std::endl;
+		std::cout << "My Class Function Called" << std::endl;
+		std::cout << "My Class ID = " << myint << std::endl;
 	}
+
 };
 
 
 int main(){
+	// By Default, DEBUG_MODE = false. To enable debug logs, you can do DEBUG_MODE = true
+	/*
+		bool DEBUG_MODE = true;
+		Allocator& alloc = Allocator::getInstance(DEBUG_MODE);
+	*/
+
 	Allocator& alloc = Allocator::getInstance();
-	MyClass* myclass_ptr = alloc.allocate_new<MyClass>("Param 1");
-	myclass_ptr->foo();
-	alloc.free_ptr<MyClass>(myclass_ptr);
+
+	// By Default, GC_ENABLED = true. You can automatic garbage collection by setting GC_ENABLED = false;
+
+	alloc.GC_ENABLED = true;
+
+	// If you want to manually invoke GC, you can get the instance of GC from the allocator.
+
+	Garbage_Collector& gc = alloc.getGC();
+
+	// Let us create an array of size 3 with MyClass Objects
+
+	MyClass** arr = (MyClass**)alloc.allocate(3 * sizeof(MyClass*), (void**)&arr);
+
+	for (int i = 0; i < 3; i++) {
+		// The first argument of allocate_new is the stack variable reference which provides root for GC
+		// If provided, the GC will not collect the area referenced by the stack variable during garbage collection
+		// You can decide to not provide it by setting the 1st argument = nullptr. As long as the parent node is referencing the heap, the gc will not collect any of the child nodes
+		// The next 'n' arguments are the arguments for the constructor. The arguments are forwarded to the constructor
+		// Here there is only 1 var in Constructor, id. So we will provide the id
+		int myObjId = i;
+		arr[i] = alloc.allocate_new<MyClass>(nullptr, myObjId);
+	}
+	/*
+	OUTPUT:
+	My Class Constructor Called
+	My Class ID = 0
+
+	My Class Constructor Called
+	My Class ID = 1
+
+	My Class Constructor Called
+	My Class ID = 2
+	*/
+
+
+
+	// Let us invoke the foo() function
+	for (int i = 0; i < 3; i++) {
+		arr[i]->foo();
+	}
+
+	/*
+	OUTPUT:
+	My Class Function Called
+	My Class ID = 0
+
+	My Class Function Called
+	My Class ID = 1
+
+	My Class Function Called
+	My Class ID = 2
+
+	*/
+
+	// Let us look at snippet of heap
+	alloc.heap_dump();		// Only works if DEBUG_MODE = true
+	/*
+	Chunks:
+		Chunk at: 0x5587e0d5e400, Size: 24 bytes, Allocated, gc_mark : UNMARKED, Next: 0x5587e0d5e440, Prev: 0
+		Chunk at: 0x5587e0d5e440, Size: 4 bytes, Allocated, gc_mark : UNMARKED, Next: 0x5587e0d5e46c, Prev: 0x5587e0d5e400
+		Chunk at: 0x5587e0d5e46c, Size: 4 bytes, Allocated, gc_mark : UNMARKED, Next: 0x5587e0d5e498, Prev: 0x5587e0d5e440
+		Chunk at: 0x5587e0d5e498, Size: 4 bytes, Allocated, gc_mark : UNMARKED, Next: 0, Prev: 0x5587e0d5e46c
+	*/
+
+	// Now if we want to assign the memory to variable, you can do so using the 'assign' function
+	// Assign function ensures that the garbage collector will not pick up the objects during the collection process
+
+	MyClass* ptr = alloc.assign(&ptr, arr[2]);
+
+	// Now if we set the arr to nullptr or some other variable, it will not collect the area pointed by obj
+	arr = nullptr;
+
+	// Let us manually invoke the GC
+	gc.gc_collect();
+	alloc.heap_dump();		// Only works if DEBUG_MODE = true
+	/*
+	Chunks:
+		Chunk at: 0x559db2cbd400, Size: 112 bytes, Free, gc_mark : UNMARKED, Next: 0x559db2cbd498, Prev: 0
+		Chunk at: 0x559db2cbd498, Size: 4 bytes, Allocated, gc_mark : MARKED, Next: 0, Prev: 0x559db2cbd400
+	*/
+	// As you can see, all the unreachable chunks have been collected by the gc
+
+	// Important Note: Garbage collector does not invoke the destructor of the object
+	// To safely destroy an object. Use the free_ptr() function
+
+	alloc.free_ptr<MyClass>(ptr);
+	/*
+	My Class Destructor Called
+	My Class ID = 2
+	*/
+
+	alloc.heap_dump();		// Only works if DEBUG_MODE = true
+	/*
+	Chunks:
+		Chunk at: 0x559db2cbd400, Size: 156 bytes, Free, gc_mark : UNMARKED, Next: 0, Prev: 0
+	*/
+
 }
 ```
 
 **Output**:
 ```
-My Class Constructor called
-Param passed : Param 1
-My Class function called
-My Class Destructor called
+My Class Constructor Called
+My Class ID = 0
+My Class Constructor Called
+My Class ID = 1
+My Class Constructor Called
+My Class ID = 2
+My Class Function Called
+My Class ID = 0
+My Class Function Called
+My Class ID = 1
+My Class Function Called
+My Class ID = 2
+My Class Destructor Called
+My Class ID = 2
 ```
 
 **Explanation**: Use the `allocate_new()` method to instantiate a new object. Pass the parameters as the arguments to the constructor
 
-### Example 3: Enable DEBUG Mode
+### Example 4: Enable DEBUG Mode
 **Title**: Turn on DEBUG Mode
 
-**Description**: To see the internal logs and working, and use the `heap_dump()` function and `print_allocated_chunks()` function, enable DEBUG Mode
+**Description**: To see the internal logs and working enable DEBUG Mode
 
 **Code**:
 ```cpp
 
 int main(){
+
+	// By Default, DEBUG_MODE = false. To enable debug logs, you can do DEBUG_MODE = true
+	
 	bool DEBUG_MODE = true;
 	Allocator& alloc = Allocator::getInstance(DEBUG_MODE);
 	
-	int* int_arr = (int*)alloc.allocate(sizeof(int) * 10);		// 40 Bytes
-	char* char_arr = (char*)alloc.allocate(sizeof(char) * 26);  // 26 Bytes
-
-	// expected to have 2 chunks -> int_arr and char_arr
-	// int_arr chunk = 10*sizeof(int) + 32 (sizeof(Chunk_Metadata)) = 10*4 + 32 = 40 + 32 = 72 bytes
-	// char_arr chunk = 26*sizeof(char) + 32 (sizeof(Chunk_Metadata)) = 26 + 32 = 58 bytes
-
-	alloc.heap_dump();
-	alloc.print_allocated_chunks();
-
-	// let us free int_arr. It should free -> 10 * sizeof(int) = 10*4 + 32 = 40+32 = 72 bytes
-	alloc.deallocate(int_arr);
-
-	// now if we look at heap dump, we will see that chunk 1 is free and allocated_chunk tree should only have one chunk inside of it
-	alloc.heap_dump();
-	alloc.print_allocated_chunks();
-
 }
 ```
-
-**Output**:
-```
-
----------- getInstance() Logs ---------- 
-
-[INFO]    INITILIZATING NODE POOL..
-
-[INFO]    INITILIZATING HEAP..
-
-[INFO]    INITIAL HEAP CAPACITY 1048576
-
-[INFO]    Chunk Metadata Size : 32
-
-[INFO]    Heap initialized at heap_start : 0x55bfcbe1f400 with capacity of 1048576
-
----------- END ---------- 
-
----------- int_arr Creation Logs ---------- 
-[INFO]    Received Allocation Request for 40
-
-[INFO]    Creating first chunk
-
-[INFO]    Received Request for inserting node in BST: root=0 chunk_ptr=0x55bfcbe1f420 chunk_size=40
-
-[INFO]    Received request for node allocation: size=40 chunk=0x55bfcbe1f420
-
-[INFO]    Node: i=0
-
-[INFO]     node_pool=0x55bfcbe17000
-
-[INFO]     node_used=0
-
-[INFO]    Found free node
-
----------- END ---------- 
-
----------- char_arr Creation Logs ---------- 
-[INFO]    Received Allocation Request for 26
-
-[INFO]    Received Request for inserting node in BST: root=0x55bfcbe17000 chunk_ptr=0x55bfcbe1f468 chunk_size=26
-
-[INFO]    Received Request for inserting node in BST: root=0 chunk_ptr=0x55bfcbe1f468 chunk_size=26
-
-[INFO]    Received request for node allocation: size=26 chunk=0x55bfcbe1f468
-
-[INFO]    Node: i=0
-
-[INFO]     node_pool=0x55bfcbe17000
-
-[INFO]     node_used=1
-
-[INFO]    Node: i=1
-
-[INFO]     node_pool=0x55bfcbe17020
-
-[INFO]     node_used=0
-
-[INFO]    Found free node
----------- END ---------- 
-
--- PRINTING ALLOCATED CHUNKS --
-
-      0x55bfcbe1f448 : 26
-
-0x55bfcbe1f400 : 40
-
----------- END ---------- 
-
----------- int_arr deallocation logs ---------- 
-[INFO]    Received request for deallocation of pointer 0x55bfcbe1f420
-
-[INFO]    Verification Done:  0x55bfcbe1f420 is valid
-
-[INFO]    Pointer found in allocation tree
- ptr=0x55bfcbe1f420
- chunk_ptr=0x55bfcbe1f420
- bst_chunk_node=0x55bfcbe1f400
-
-----------------------------------------
-Heap Dump:
-Total Heap Capacity: 1048576 bytes
-Used Heap Size: 130 bytes
-Chunks:
-Chunk at: 0x55bfcbe1f400, Size: 40 bytes, Free, Next: 0x55bfcbe1f448, Prev: 0
-Chunk at: 0x55bfcbe1f448, Size: 26 bytes, Allocated, Next: 0, Prev: 0x55bfcbe1f400
-Summary:
-Total Allocated Memory: 26 bytes
-Total Free Memory: 40 bytes
-Number of Allocated Chunks: 1
-Number of Free Chunks: 1
-----------------------------------------
--- PRINTING ALLOCATED CHUNKS --
-
-0x55bfcbe1f448 : 26
----------- END ---------- 
-```
-
-**Explanation**: The logs contain the information about the working our the entire project. In the `main.cpp` file, there are few more examples that show the best fit stratergy and coalescing strategy.
-
 ---
 
 ## How It Works Internally
