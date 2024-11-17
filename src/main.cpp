@@ -1,135 +1,135 @@
- #include <iostream>
+#include <iostream>
 #include "allocator.h"
+#include "garbage_collector.h"
 
-#define LBR '\n'
-
+// Example Class to showcase Allocator and GC
 class MyClass {
 public:
-	MyClass(std::string param) {
-		std::cout << "My Class Constructor called" << LBR;
-		std::cout << "Param passed : " << param << LBR;
+	int myint;
+
+	MyClass(int myint): myint(myint) {
+		std::cout << "My Class Constructor Called" << std::endl;
+		std::cout << "My Class ID = " << myint << std::endl;
 	}
 
-	~MyClass() {
-		std::cout << "My Class Destructor called" << LBR;
+	~MyClass(){
+		std::cout << "My Class Destructor Called" << std::endl;
+		std::cout << "My Class ID = " << myint << std::endl;
 	}
 
 	void foo() {
-		std::cout << "My Class function called" << LBR;
+		std::cout << "My Class Function Called" << std::endl;
+		std::cout << "My Class ID = " << myint << std::endl;
 	}
+
 };
 
-
 int main(){
+	
+	// By Default, DEBUG_MODE = false. To enable debug logs, you can do DEBUG_MODE = true
 	/*
-	// Turn on DEBUG MODE for internal heap logs
-	// Default DEBUG_MODE = false
-	// Note: heap_dump() and print_allocated_chunks() only works in debug mode.
-	// To enable debug mode, use the following syntax:
-
-	bool DEBUG_MODE = true;
-	Allocator& alloc = Allocator::getInstance(DEBUG_MODE);
+		bool DEBUG_MODE = true;
+		Allocator& alloc = Allocator::getInstance(DEBUG_MODE);		
 	*/
 
 	Allocator& alloc = Allocator::getInstance();
 
+	// By Default, GC_ENABLED = true. You can automatic garbage collection by setting GC_ENABLED = false;
 
-	// only works in debug_mode
-	alloc.heap_dump();
-	alloc.print_allocated_chunks();
+	alloc.GC_ENABLED = true;
+
+	// If you want to manually invoke GC, you can get the instance of GC from the allocator.
 	
+	Garbage_Collector& gc = alloc.getGC();
 
-	int* int_arr = (int*)alloc.allocate(sizeof(int) * 10);
-	for (int i = 0; i < 10; i++) {
-		int_arr[i] = i;
-	}
+	// Let us create an array of size 3 with MyClass Objects
 
-	for (int i = 0; i < 10; i++) {
-		std::cout << int_arr[i] << " ";
-	}
-	std::cout << LBR;
+	MyClass** arr = (MyClass**)alloc.allocate(3*sizeof(MyClass*), (void**) & arr);
 
-	
-	char* char_arr = (char*)alloc.allocate(sizeof(char) * 26);
-	
-	for (int i = 0; i < 26; i++) {
-		char_arr[i] = (char)(65 + i);
-	}
-
-	for (int i = 0; i < 26; i++) {
-		std::cout << char_arr[i] << " ";
-	}
-	std::cout << LBR;
-
-	// expected to have 2 chunks -> int_arr and char_arr
-	// int_arr chunk = 10*sizeof(int) + 32 (sizeof(Chunk_Metadata)) = 10*4 + 32 = 40 + 32 = 72 bytes
-	// char_arr chunk = 26*sizeof(char) + 32 (sizeof(Chunk_Metadata)) = 26 + 32 = 58 bytes
-
-	alloc.heap_dump();
-	alloc.print_allocated_chunks();
-
-	
-	// let us free int_arr. It should free -> 10 * sizeof(int) = 10*4 + 32 = 40+32 = 72 bytes
-	alloc.deallocate(int_arr);
-
-	// now if we look at heap dump, we will see that chunk 1 is free and allocated_chunk tree should only have one chunk inside of it
-	alloc.heap_dump();
-	alloc.print_allocated_chunks();
-
-	
-	// now let us create a new chunk of char of size 3
-	// it will take 3*sizeof(char) + 32 (sizeof(Chunk_Metadata)) =  35 bytes
-	// it will be placed in 72 bytes chunk which we deallocted earlier
-	// remaining 72-35  = 37 bytes can be used to create a new chunk of size 5 bytes 
-	// as 5 bytes + 32 bytes (sizeof(Chunk_Metadata)) = 37 bytes
-
-
-	char* chunk_1 = (char*) alloc.allocate(sizeof(char) * 3);
 	for (int i = 0; i < 3; i++) {
-		chunk_1[i] = (char)(65 + i);
+		// The first argument of allocate_new is the stack variable reference which provides root for GC
+		// If provided, the GC will not collect the area referenced by the stack variable during garbage collection
+		// You can decide to not provide it by setting the 1st argument = nullptr. As long as the parent node is referencing the heap, the gc will not collect any of the child nodes
+		// The next 'n' arguments are the arguments for the constructor. The arguments are forwarded to the constructor
+		// Here there is only 1 var in Constructor, id. So we will provide the id
+		int myObjId = i;
+		arr[i] = alloc.allocate_new<MyClass>(nullptr, myObjId);
+	}
+	/*
+	OUTPUT:
+	My Class Constructor Called
+	My Class ID = 0
+
+	My Class Constructor Called
+	My Class ID = 1
+	
+	My Class Constructor Called
+	My Class ID = 2
+	*/
+
+
+
+	// Let us invoke the foo() function
+	for (int i = 0; i < 3; i++) {
+		arr[i]->foo();
 	}
 
-	// expected to have 3 chunks : chunk_1 (3 bytes) + free_chunk (5 bytes) + char_arr chunk (26 bytes)
-	alloc.heap_dump();
-	alloc.print_allocated_chunks();
+	/*
+	OUTPUT:
+	My Class Function Called
+	My Class ID = 0
 	
-	char* chunk_2 = (char*) alloc.allocate(sizeof(char) * 5);
-	for (int i = 0; i < 5; i++) {
-		chunk_2[i] = (char)(65 + i);
-	}
-
-	for (int i = 0; i < 5; i++) {
-		std::cout << chunk_2[i] << " ";
-	}
-	std::cout << LBR;
-
-	// expected to have 3 chunks : chunk_1 (3 bytes) + chunk_2 (5 bytes) + char_arr chunk (26 bytes)
-
-	alloc.heap_dump();
-	alloc.print_allocated_chunks();
+	My Class Function Called
+	My Class ID = 1
 	
-	// now let us deallocate all chunks
-	// expected that all chunks coalesce
-	// coalesced chunk = 3 (chunk_1) + 5 (chunk_2) + 32 (chunk_2 Metadata) + 26 (char_arr) + 32 (char_arr Metadata) = 98 byes
-
-	alloc.deallocate(chunk_1);
-	alloc.deallocate(chunk_2);
-	alloc.deallocate(char_arr);
-
-	alloc.heap_dump();
-	alloc.print_allocated_chunks();
+	My Class Function Called
+	My Class ID = 2
 	
+	*/
 
-	// now let us create the object of class using the allocate_new function which behaves like new operator in C++
-	MyClass* myclass_ptr = alloc.allocate_new<MyClass>("Hello");
+	// Let us look at snippet of heap
+	alloc.heap_dump();		// Only works if DEBUG_MODE = true
+	/*
+	Chunks:
+		Chunk at: 0x5587e0d5e400, Size: 24 bytes, Allocated, gc_mark : UNMARKED, Next: 0x5587e0d5e440, Prev: 0
+		Chunk at: 0x5587e0d5e440, Size: 4 bytes, Allocated, gc_mark : UNMARKED, Next: 0x5587e0d5e46c, Prev: 0x5587e0d5e400
+		Chunk at: 0x5587e0d5e46c, Size: 4 bytes, Allocated, gc_mark : UNMARKED, Next: 0x5587e0d5e498, Prev: 0x5587e0d5e440
+		Chunk at: 0x5587e0d5e498, Size: 4 bytes, Allocated, gc_mark : UNMARKED, Next: 0, Prev: 0x5587e0d5e46c
+	*/
 
-	alloc.heap_dump();
-	alloc.print_allocated_chunks();
-	
-	myclass_ptr->foo();
-	alloc.free_ptr<MyClass>(myclass_ptr);
+	// Now if we want to assign the memory to variable, you can do so using the 'assign' function
+	// Assign function ensures that the garbage collector will not pick up the objects during the collection process
+
+	MyClass* ptr = alloc.assign(&ptr, arr[2]);
+
+	// Now if we set the arr to nullptr or some other variable, it will not collect the area pointed by obj
+	arr = nullptr;
+
+	// Let us manually invoke the GC
+	gc.gc_collect();
+	alloc.heap_dump();		// Only works if DEBUG_MODE = true
+	/*
+	Chunks:
+		Chunk at: 0x559db2cbd400, Size: 112 bytes, Free, gc_mark : UNMARKED, Next: 0x559db2cbd498, Prev: 0
+		Chunk at: 0x559db2cbd498, Size: 4 bytes, Allocated, gc_mark : MARKED, Next: 0, Prev: 0x559db2cbd400
+	*/
+	// As you can see, all the unreachable chunks have been collected by the gc
+
+	// Important Note: Garbage collector does not invoke the destructor of the object
+	// To safely destroy an object. Use the free_ptr() function
+
+	alloc.free_ptr<MyClass>(ptr);
+	/*
+	My Class Destructor Called
+	My Class ID = 2
+	*/
+
+	alloc.heap_dump();		// Only works if DEBUG_MODE = true
+	/*
+	Chunks:
+		Chunk at: 0x559db2cbd400, Size: 156 bytes, Free, gc_mark : UNMARKED, Next: 0, Prev: 0
+	*/
 
 
-	alloc.heap_dump();
-	alloc.print_allocated_chunks();
+
 }
