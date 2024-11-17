@@ -34,7 +34,7 @@ int main(){
 
 	//Allocator& alloc = Allocator::getInstance();
 
-	// By Default, GC_ENABLED = true. You can automatic garbage collection by setting GC_ENABLED = false;
+	// By Default, GC_ENABLED = true. You can disable automatic garbage collection by setting GC_ENABLED = false;
 
 	alloc.GC_ENABLED = true;
 
